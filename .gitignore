@@ -1,5 +1,7 @@
 # Ignore all CSV files
 *.csv
+.ipynb_checkpoints/
+
 
 # Node.js dependencies
 node_modules/
