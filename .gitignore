@@ -1,2 +1,4 @@
 # Ignore dataset
 data/watson_healthcare_modified.csv
+data/cleaned_data.csv
+AGENTS.md
