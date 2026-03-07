@@ -64,6 +64,10 @@ body {
     font-size: 16px;
     cursor: pointer;
     font-weight: 350;
+    transition: transform 0.3s ease;
+    &:hover {
+        transform: scale(1.05);
+    }
 }
 
 p.home {
@@ -72,14 +76,19 @@ p.home {
 }
 
 .login {
-    width: 120px;
+    width: 100px;
     height: 40px;
     border: none;
     border-radius: 500px;
     padding: auto;
     color: white;
     margin-right: 20px;
-    background-color: #007589;
+    background-color: #006071;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    &:hover {
+        background-color: #006e81;
+    }
 }
 
 .content {
@@ -95,25 +104,40 @@ p.home {
     height: 60%;
     background-color: #167589;
     opacity: 100%;
-    border-radius: 91px;
+    border-radius: 5rem;
     display: flex;
     justify-content: center;
     align-items: center;
     flex-direction: column;
     color: white;
     text-align: center;
+    margin-bottom: 150px;
 
     p {
-        font-size: 24px;
+        font-size: 1rem;
         opacity: 100%;
+        font-weight: normal;
     }
 
     h1 {
-        font-size: 48px;
+        font-size: 3rem;
         opacity: 100%;
+        font-weight: bold;
     }
 
     button {
-        
+        width: 120px;
+        height: 40px;
+        border-radius: 500px;
+        padding: auto;
+        color: white;
+        margin-top: 20px;
+        background-color: #006e81;
+        border: 1px solid #43e3ff;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        &:hover {
+            background-color: #0088a0;
+        }
     }
 }
