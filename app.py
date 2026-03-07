@@ -1,5 +1,5 @@
 import pandas as pd
-from flask import Flask, render_template, request
+from flask import Flask, render_template, Response
 import pickle
 # +++++++++++++++++++++++++++ Library Corner +++++++++++++++++++++++++++
 
@@ -7,7 +7,8 @@ app = Flask(__name__)
 @app.route('/')
 def index():
     return render_template('index.html')
-@app.route('/<employee_dataset>', methods = ['GET', 'POST'])
+
+# @app.route('/<employee_dataset>', methods = ['GET', 'POST'])
 def clean_dataset(employee_dataset):
 
     dataset_name = employee_dataset + '.csv'
@@ -26,7 +27,7 @@ def clean_dataset(employee_dataset):
     df['Gender_Female'] = (df['Gender'] == 'Female') * 1
     df['Gender_Male'] = (df['Gender'] == 'Male') * 1
 
-    df.drop(columns=['Gender', 'Department', 'EmployeeID'], inplace=True)
+    df.drop(columns=['Gender', 'Department'], inplace=True)
 
     # ------------- Encoding BusinessTravel and MaritalStatus -------------
 
@@ -34,7 +35,6 @@ def clean_dataset(employee_dataset):
     df['MaritalStatus'] = df['MaritalStatus'].map({'Single': 0, 'Married': 1, 'Divorced': 2})
 
     # ------------- Mapping -------------
-    df['Attrition'] = (df['Attrition'].str.lower()).map({'no': 0, 'yes': 1})
     df['OverTime'] = (df['OverTime'].str.lower()).map({'no': 0, 'yes': 1})
     df['EducationField'] = df['EducationField'].map({'Other': 0, 'Life Sciences': 1, 'Medical': 2, 'Marketing': 3, 'Technical Degree': 4, 'Human Resources': 5})
     df['is_other_JobRole'] = (df['JobRole'] == 'Other').astype(int)
@@ -42,35 +42,40 @@ def clean_dataset(employee_dataset):
 
     return df
 
-@app.route('/predict')
 def risk_pred(p):
-    if (p < 0.25):
+    if p < 0.25:
         return 'low risk'
-    elif (p >= 0.25 and p < 0.50):
+    elif p < 0.50:
         return 'medium risk'
-    elif (p >= 0.50 and p < 0.75):
+    elif p < 0.75:
         return 'high risk'
     else:
         return 'critical risk'
 
-@app.route('/predict')
-def results(y_test_proba, y_pred_binary, df=clean_dataset):
-    results = pd.DataFrame({
+def results(y_test_proba, y_pred_binary, df):
+    result_table = pd.DataFrame({
         'PersonID': df['EmployeeID'],
         'Attrition_Probability': [f"{p:.2%}" for p in y_test_proba],
-        'Binary_Prediction': y_pred_binary,
         'Predicted_Risk': [risk_pred(p) for p in y_test_proba],
-        'Actual_Attrition': y.values
+        'Binary_Prediction': y_pred_binary
     })
-    return results.sample(10)
+    return result_table
 
-@app.route('/predict', methods=['POST'])
-def predict():
-    with open('models/model.pkl', 'rb') as f:
-        model = pickle.load(f)
+@app.route('/predict/<employee_dataset>', methods=['GET' ,'POST'])
+def predict(employee_dataset):
 
+    dataset = clean_dataset(employee_dataset)
 
-    return '<h2> model loaded </h2>'
+    model = pickle.load(open('models/model.pkl','rb'))
+
+    df = dataset.drop(columns=['EmployeeID']).copy()
+
+    y_test_proba = model.predict_proba(df)[:, 1]
+    y_pred_binary = (y_test_proba >= 0.5).astype(int)
+
+    table = results(y_test_proba, y_pred_binary, dataset)
+
+    return Response(table.to_html(), mimetype='text/html')
 
 
 
