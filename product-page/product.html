@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Risk Dashboard</title>
+    <link rel="stylesheet" href="productstylesheet.css">
+</head>
+<body>
+    <div class="container">
+    <nav class="navigation-bar">
+        <div class="product-identity">
+            <img src="./assets/logo.png" alt="product-logo" class="product-logo">
+            <h1 class="product-name">Product Name</h1>
+        </div>
+        <div class="navigation-panel">
+            <a href="index.html" class="home">Home</a>
+            <a href="product.html" class="product active">Product</a>
+            <a href="#" class="team">Our Team</a>
+        </div>
+        <button class="login" onclick="">Get Started</button>
+    </nav>
+    
+    </div>
+
+    <main class="dashboard-container">
+        <div class="main-card">
+            <div class="card-header">
+                <h2>Employee Data</h2>
+                <input type="text" id="employeeSearch" placeholder="Search for employee ID..." onkeyup="filterEmployees()">
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Risk Level</th>
+                            <th>Probability</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="employeeTableBody">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="side-panel">
+            <div class="info-box" id="insightsBox">
+                <h3>Insights</h3>
+                <div class="content" id="insightsContent">Select an employee to view details.</div>
+            </div>
+            <div class="info-box" id="strategiesBox">
+                <h3>Strategies</h3>
+                <div class="content" id="strategiesContent">Recommended actions will appear here.</div>
+            </div>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
