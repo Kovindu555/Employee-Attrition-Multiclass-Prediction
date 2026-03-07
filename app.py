@@ -1,14 +1,33 @@
 import pandas as pd
 from flask import Flask, render_template, Response
 import pickle
-# +++++++++++++++++++++++++++ Library Corner +++++++++++++++++++++++++++
+# ------------------------------ Library Corner -----------------------------
 
-app = Flask(__name__)
-@app.route('/')
-def index():
-    return render_template('index.html')
+# ---------------------------------- Tools ----------------------------------
+def risk_pred(p):
+    if p < 0.25:
+        return 'Low Risk'
+    elif p < 0.50:
+        return 'Medium Risk'
+    elif p < 0.75:
+        return 'High Risk'
+    else:
+        return 'Critical Risk'
 
-# @app.route('/<employee_dataset>', methods = ['GET', 'POST'])
+def results(y_test_proba, y_pred_binary, df, raw_df):
+    result_table = pd.DataFrame({
+        'PersonID': df['EmployeeID'],
+        'Age': raw_df['Age'],
+        'JobRole': raw_df['JobRole'],
+        'Department': raw_df['Department'],
+        'Attrition_Probability': [f"{p:.2%}" for p in y_test_proba],
+        'Predicted_Risk': [risk_pred(p) for p in y_test_proba],
+        'Attrition_Binary': y_pred_binary
+    })
+
+    result_table.to_json('jsons/results_table.json', orient='records', indent=4)
+    return result_table
+
 def clean_dataset(employee_dataset):
 
     dataset_name = employee_dataset + '.csv'
@@ -41,28 +60,22 @@ def clean_dataset(employee_dataset):
     df['JobRole'] = df['JobRole'].map({'Other': 0, 'Nurse': 1, 'Therapist': 2, 'Administrative': 3, 'Admin': 4})
 
     return df
+# -----------------------------------------------------------------------------
 
-def risk_pred(p):
-    if p < 0.25:
-        return 'low risk'
-    elif p < 0.50:
-        return 'medium risk'
-    elif p < 0.75:
-        return 'high risk'
-    else:
-        return 'critical risk'
 
-def results(y_test_proba, y_pred_binary, df):
-    result_table = pd.DataFrame({
-        'PersonID': df['EmployeeID'],
-        'Attrition_Probability': [f"{p:.2%}" for p in y_test_proba],
-        'Predicted_Risk': [risk_pred(p) for p in y_test_proba],
-        'Binary_Prediction': y_pred_binary
-    })
-    return result_table
+app = Flask(__name__)
+
+# ------------------------------- App Functions -------------------------------
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 @app.route('/predict/<employee_dataset>', methods=['GET' ,'POST'])
-def predict(employee_dataset):
+def sample_predict(employee_dataset):
+
+    raw_dataset_name = employee_dataset + '.csv'
+    raw_dataset_directory = 'test_csv/' + raw_dataset_name
+    raw_dataset = pd.read_csv(raw_dataset_directory)
 
     dataset = clean_dataset(employee_dataset)
 
@@ -73,12 +86,34 @@ def predict(employee_dataset):
     y_test_proba = model.predict_proba(df)[:, 1]
     y_pred_binary = (y_test_proba >= 0.5).astype(int)
 
-    table = results(y_test_proba, y_pred_binary, dataset)
+    table = results(y_test_proba, y_pred_binary, dataset, raw_dataset)
 
     return Response(table.to_html(), mimetype='text/html')
 
+@app.route('/ViewInsights/<employee_dataset>', methods=['GET', 'POST'])
+def combined_dataset(employee_dataset):
+    raw_dataset_name = employee_dataset + '.csv'
+    raw_dataset_directory = 'test_csv/' + raw_dataset_name
+    raw_dataset = pd.read_csv(raw_dataset_directory)
+
+    sample_predict(employee_dataset)
+
+    results_table = pd.read_json('jsons/results_table.json')
+    cols = results_table.iloc[:, [4, 5, 6]]
+    combined_df = pd.concat([raw_dataset, cols], axis=1)
+
+    return Response(combined_df.to_html(), mimetype='text/html')
+# --------------------------------------------------------------------------------
 
 
+# ------------------------------- Testing Purposes -------------------------------
+@app.route('/show/<df>', methods=['GET', 'POST'])
+def show(df):
+    df = clean_dataset(df)
+    return df.sample(7).to_html()
+
+
+# --------------------------------------------------------------------------------
 
 
 if __name__ == '__main__':
