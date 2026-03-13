@@ -28,6 +28,16 @@ def show_view_insights(employee_dataset):
     insights = rpb.combined_dataset(employee_dataset)
     return Response(insights.to_html(), mimetype='text/html')
 
+
+@app.route('/<employee_dataset>/search_employee_id=<search_id>', methods=['GET', 'POST'])
+def show_search_employee_id(employee_dataset, search_id):
+    search_employee = rpb.search_employee_id(employee_dataset, search_id)
+
+    if search_employee is None:
+        return Response(f"<h1>Error</h1><p>ID {search_id} not found.</p>", status=404)
+
+    return Response(search_employee.to_html(classes='table'), mimetype='text/html')
+
 # --------------------------------------------------------------------------------
 
 if __name__ == '__main__':

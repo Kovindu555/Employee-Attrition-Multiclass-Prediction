@@ -15,7 +15,7 @@ def risk_pred(p):
 
 def results(y_test_proba, y_pred_binary, df, raw_df):
     result_table = pd.DataFrame({
-        'PersonID': df['EmployeeID'],
+        'EmployeeID': df['EmployeeID'],
         'Age': raw_df['Age'],
         'JobRole': raw_df['JobRole'],
         'Department': raw_df['Department'],
@@ -24,7 +24,7 @@ def results(y_test_proba, y_pred_binary, df, raw_df):
         'Attrition_Binary': y_pred_binary
     })
 
-    result_table.to_json('jsons/results_table.json', orient='records', indent=4)
+    # result_table.to_json('jsons/results_table.json', orient='records', indent=4)
     return result_table
 
 def clean_dataset(employee_dataset):
@@ -65,31 +65,54 @@ def clean_dataset(employee_dataset):
 # ------------------------------- Primary Tools -------------------------------
 def sample_predict(employee_dataset):
 
+    combined_dataset(employee_dataset)
+    combined_table = pd.read_json('jsons/combined_df_table.json')
+
+    columns = [0, 1, 14, 4, 34, 35]
+    dashboard_pred = combined_table.iloc[:, columns].copy()
+    return dashboard_pred
+
+def combined_dataset(employee_dataset):
+
     raw_dataset_name = employee_dataset + '.csv'
     raw_dataset_directory = 'test_csv/' + raw_dataset_name
     raw_dataset = pd.read_csv(raw_dataset_directory)
 
     dataset = clean_dataset(employee_dataset)
 
-    model = pickle.load(open('models/model.pkl','rb'))
+    model = pickle.load(open('models/model.pkl', 'rb'))
 
     df = dataset.drop(columns=['EmployeeID']).copy()
 
     y_test_proba = model.predict_proba(df)[:, 1]
     y_pred_binary = (y_test_proba >= 0.5).astype(int)
 
-    dashboard_pred = results(y_test_proba, y_pred_binary, dataset, raw_dataset)
-    return dashboard_pred
-
-def combined_dataset(employee_dataset):
-    raw_dataset_name = employee_dataset + '.csv'
-    raw_dataset_directory = 'test_csv/' + raw_dataset_name
-    raw_dataset = pd.read_csv(raw_dataset_directory)
-
-    sample_predict(employee_dataset)
-
-    results_table = pd.read_json('jsons/results_table.json')
-    cols = results_table.iloc[:, [4, 5, 6]]
+    results_table = results(y_test_proba, y_pred_binary, dataset, raw_dataset)
+    cols = results_table.iloc[:, [4, 5]]
     combined_df = pd.concat([raw_dataset, cols], axis=1)
+    combined_df.to_json('jsons/combined_df_table.json', orient='records', indent=4)
+
     return combined_df
+
+
+def search_employee_id(employee_dataset, search_id):
+
+    combined_dataset(employee_dataset)
+    employee_data = pd.read_json('jsons/combined_df_table.json')
+
+    if employee_data.index.name != 'EmployeeID':
+        employee_data = employee_data.set_index('EmployeeID')
+
+    try:
+        if not isinstance(search_id, int):
+            search_id = int(search_id)
+
+        employee_info = employee_data.loc[[search_id]]
+        table = employee_info.T
+        table.columns = ['Employee Details']
+
+        return table
+
+    except (KeyError, ValueError):
+        return None
 # --------------------------------------------------------------------------------
