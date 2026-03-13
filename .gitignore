@@ -5,3 +5,4 @@ model_testing.ipynb
 model_training.ipynb
 feature_extraction.ipynb
 Data_cleaning.ipynb
+.gitignore
