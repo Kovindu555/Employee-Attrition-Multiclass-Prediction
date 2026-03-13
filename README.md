@@ -12,7 +12,11 @@ Each major component of the system is implemented in a separate branch:
 
 ### 1️⃣ Risk Profiling (Ensemble Model) — `risk-profiling` Branch  
 - Develops the **core prediction system** using ensemble machine learning models.  
-- Generates **multi-class attrition risk predictions** (e.g., Will Not Leave, Likely to Leave, High Risk).  
+- Generates **multi-class attrition risk predictions** as;
+    - `Low Risk`
+    - `Medium Risk`
+    - `High Risk`
+    - `Critical Risk`  
 - Handles data preprocessing, model training, testing, and evaluation.
 
 ### 2️⃣ Output Integration (Interpretation) — `output-integration` Branch  
