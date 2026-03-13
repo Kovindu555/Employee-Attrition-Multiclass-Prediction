@@ -10,7 +10,11 @@ app = Flask(__name__)
 # -------------------------------- App Functions --------------------------------
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('home-page/index.html')
+
+@app.route('/about')
+def product_page():
+    return render_template('product-page/product.html')
 @app.route('/<employee_dataset>/Raw', methods=['GET', 'POST'])
 def show_raw(employee_dataset):
     raw_dataset_name = employee_dataset + '.csv'

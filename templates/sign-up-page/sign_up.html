@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign-up Page</title>
+    <link rel="stylesheet" href="../../static/sign_up_stylesheet.css">
+</head>
+<body>
+    <div class="container">
+        <div class="left-panel">
+            <div class="branding">
+                <img src="./assets/logo.png" alt="Logo" class="logo">
+                <h1>Product Name</h1>
+            </div>
+        </div>
+        <div class="right-panel">
+            <div class="backdrop">
+                <div class="header">
+                    <img src="./assets/back.png" alt="" class="back">
+                    <h1>Sign-in</h1>
+                </div>
+                <form action="Login" method="post" class="login-form">
+                    <input type="text" placeholder="Enter your email address" class="input-field">
+                    <input type="password" placeholder="Password" class="input-field" id="create">
+                    <input type="password" placeholder="Confirm Password" class="input-field" id="confirm">
+                    <label>
+                        <input type="checkbox" id="remember-me" class="checkbox">
+                        Remember me
+                    </label>
+                    <button class="sign-up">Sign-up</button>
+                </form>
+                <p class="sign-up">Already have an account? <a href="../sign-in-page/sign_in.html">Sign in</a></p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,161 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
+
+:root {
+    --primary-gradient: linear-gradient(180deg, #005160, #007589);
+    --primary-font: 'Roboto', sans-serif;
+    --primary-font-color: #ffffff;
+    --secondary-font-color: #00CFF3;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--primary-font);
+    background: var(--primary-gradient); /* Consistent background across pages */
+    min-height: 100vh;
+}
+
+.container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+}
+
+.navigation-bar {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    padding: 25px 60px;
+}
+
+.product-identity {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.product-identity img {
+    width: 73px;
+    height: 73px;
+}
+
+.product-identity h1 {
+    font-size: 16px;
+    color: var(--primary-font-color);
+    font-weight: normal;
+}
+
+.navigation-panel {
+    display: flex;
+    gap: 35px;
+    justify-content: center;
+    flex: 1;
+}
+
+.navigation-panel p, .navigation-panel a {
+    color: var(--primary-font-color);
+    font-size: 16px;
+    cursor: pointer;
+    font-weight: 350;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+/* Specific styling for the active page link */
+.navigation-panel .active {
+    color: var(--secondary-font-color);
+    font-weight: 500;
+}
+
+.login {
+    width: 120px;
+    height: 40px;
+    border: none;
+    border-radius: 500px;
+    color: white;
+    background-color: #007589;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-get-started {
+    background: var(--accent-blue);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+}
+
+/* Dashboard Layout */
+.dashboard-container {
+    width: 100%;
+    max-width: 1400px;
+    background: #f0f2f5;
+    margin: 0 40px 40px 40px;
+    border-radius: 40px;
+    padding: 30px;
+    display: grid;
+    grid-template-columns: 1.8fr 1fr;
+    gap: 25px;
+    min-height: 80vh;
+}
+
+.main-card, .info-box {
+    background: var(--card-light);
+    border-radius: 25px;
+    padding: 25px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+/* Table Styling */
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+#employeeSearch {
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+    width: 250px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th { text-align: left; color: #666; padding: 10px; }
+tr { border-bottom: 1px solid #ccc; transition: 0.3s; }
+tr:hover { background: #d5d5d5; }
+td { padding: 15px; font-weight: 500; }
+
+.view-btn {
+    background: var(--accent-blue);
+    color: white;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* Side Panels */
+.side-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.info-box { flex: 1; }
+.info-box h3 { margin-top: 0; color: #444; }
+.content { color: #555; line-height: 1.6; }

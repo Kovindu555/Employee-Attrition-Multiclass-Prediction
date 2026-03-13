@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home-page</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='index-sign_in_stylesheet.css') }}">
+</head>
+<body>
+    <div class="container">
+        <nav class="navigation-bar">
+            <div class="product-identity">
+                <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="product-logo" class="product-logo">
+                <h1 class="product-name">Product Name</h1>
+            </div>
+            <div class="navigation-panel">
+                <p class="home">Home</p>
+                <p class="product">Product</p>
+                <p class="team">Our Team</p>
+            </div>
+            <button class="login" onclick="window.location.href='../sign-up-page/sign_up.html'">Get Started</button>
+        </nav>
+        <div class="content">
+            <div class="backdrop">
+                <p>Welcome!</p>
+                <h1>Predict the Risk, <br>Shape the outcome.</h1>
+                <button class="product" onclick="">Try our product</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
