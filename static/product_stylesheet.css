@@ -5,17 +5,15 @@
     --primary-font: 'Roboto', sans-serif;
     --primary-font-color: #ffffff;
     --secondary-font-color: #00CFF3;
+    --accent-blue: #007bff;
+    --card-light: #f5f7fb;
 }
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
     font-family: var(--primary-font);
-    background: var(--primary-gradient); /* Consistent background across pages */
+    background: var(--primary-gradient);
     min-height: 100vh;
 }
 
@@ -27,6 +25,7 @@ body {
     overflow-x: hidden;
 }
 
+/* -- Navigation ------------------------------------------------------------ */
 .navigation-bar {
     display: flex;
     width: 100%;
@@ -35,30 +34,11 @@ body {
     padding: 25px 60px;
 }
 
-.product-identity {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
+.product-identity { display: flex; align-items: center; gap: 10px; }
+.product-identity img { width: 73px; height: 73px; }
+.product-identity h1 { font-size: 16px; color: var(--primary-font-color); font-weight: normal; }
 
-.product-identity img {
-    width: 73px;
-    height: 73px;
-}
-
-.product-identity h1 {
-    font-size: 16px;
-    color: var(--primary-font-color);
-    font-weight: normal;
-}
-
-.navigation-panel {
-    display: flex;
-    gap: 35px;
-    justify-content: center;
-    flex: 1;
-}
-
+.navigation-panel { display: flex; gap: 35px; justify-content: center; flex: 1; }
 .navigation-panel p, .navigation-panel a {
     color: var(--primary-font-color);
     font-size: 16px;
@@ -67,34 +47,47 @@ body {
     text-decoration: none;
     transition: color 0.3s ease;
 }
+.navigation-panel .active { color: var(--secondary-font-color); font-weight: 500; }
 
-/* Specific styling for the active page link */
-.navigation-panel .active {
-    color: var(--secondary-font-color);
-    font-weight: 500;
+/* -- File input ------------------------------------------------------------ */
+.file-input-group { display: flex; align-items: center; gap: 10px; }
+
+.dataset-label {
+    color: rgba(255,255,255,0.75);
+    font-family: var(--primary-font);
+    font-size: 13px;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.login {
-    width: 120px;
+.browse-btn {
     height: 40px;
+    padding: 0 18px;
     border: none;
     border-radius: 500px;
     color: white;
     background-color: #007589;
     cursor: pointer;
     font-weight: 500;
+    font-family: var(--primary-font), serif;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    transition: background-color 0.2s;
 }
+.browse-btn:hover { background-color: #005f70; }
 
-.btn-get-started {
-    background: var(--accent-blue);
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 20px;
-    cursor: pointer;
-}
+/* -- Minimal scrollbars ---------------------------------------------------- */
+::-webkit-scrollbar               { width: 5px; height: 5px; }
+::-webkit-scrollbar-track         { background: transparent; }
+::-webkit-scrollbar-thumb         { background: rgba(0,0,0,0.18); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover   { background: rgba(0,0,0,0.32); }
+* { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.18) transparent; }
 
-/* Dashboard Layout */
+/* -- Dashboard layout ------------------------------------------------------ */
 .dashboard-container {
     width: 100%;
     max-width: 1400px;
@@ -105,7 +98,8 @@ body {
     display: grid;
     grid-template-columns: 1.8fr 1fr;
     gap: 25px;
-    min-height: 80vh;
+    height: 82vh;       
+    overflow: hidden;    
 }
 
 .main-card, .info-box {
@@ -115,47 +109,184 @@ body {
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 
-/* Table Styling */
+.main-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;        
+    overflow: hidden;    
+}
+
+/* -- Card header & search -------------------------------------------------- */
 .card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
+    flex-shrink: 0;
+    gap: 12px;
+}
+
+.card-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 #employeeSearch {
     padding: 10px;
     border-radius: 10px;
     border: 1px solid #ccc;
-    width: 250px;
+    width: 220px;
 }
 
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-th { text-align: left; color: #666; padding: 10px; }
-tr { border-bottom: 1px solid #ccc; transition: 0.3s; }
-tr:hover { background: #d5d5d5; }
-td { padding: 15px; font-weight: 500; }
-
-.view-btn {
-    background: var(--accent-blue);
-    color: white;
+.action-btn {
+    height: 38px;
+    padding: 0 16px;
     border: none;
-    padding: 5px 12px;
-    border-radius: 5px;
+    border-radius: 10px;
+    background-color: #007589;
+    color: white;
+    font-family: var(--primary-font);
+    font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.2s;
+}
+.action-btn:hover { background-color: #005f70; }
+
+.secondary-btn {
+    background-color: #5a6a7a;
+}
+.secondary-btn:hover { background-color: #3e4e5e; }
+
+/* -- Table ----------------------------------------------------------------- */
+.table-container {
+    overflow-x: auto;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
 }
 
-/* Side Panels */
+table { width: 100%; border-collapse: collapse; }
+th {
+    text-align: center;
+    color: #666;
+    padding: 10px;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    background: var(--card-light);
+    z-index: 1;
+}
+tr { border-bottom: 1px solid #ccc; transition: background 0.2s; cursor: pointer; }
+tr:hover { background: #d5d5d5; }
+tr.selected { background: #c8e6ff !important; }
+td { padding: 15px; font-weight: 500; text-align: center; }
+
+/* First column pin — applied in full dataset view */
+.sticky-col {
+    position: sticky;
+    left: 0;
+    background: var(--card-light);
+    z-index: 2;
+    box-shadow: 2px 0 4px rgba(0,0,0,0.06);
+}
+tr:hover .sticky-col,
+tr.selected .sticky-col {
+    background: inherit;
+}
+
+/* EmployeeID column — darker text to read as the primary identifier */
+td.id-col {
+    color: #1a1a2e;
+    font-weight: 700;
+}
+
+/* -- Empty / loading states ------------------------------------------------ */
+.table-message {
+    color: #888;
+    text-align: center;
+    padding: 60px 20px;
+    font-size: 15px;
+}
+
+.loading-spinner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 60px 20px;
+    color: #555;
+    font-size: 15px;
+}
+
+.spinner {
+    width: 28px;
+    height: 28px;
+    border: 3px solid #ccc;
+    border-top-color: #007589;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* -- Risk badges ----------------------------------------------------------- */
+.badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.badge-low      { background: #d4f7e0; color: #1a7a3e; }
+.badge-medium   { background: #fff3cd; color: #856404; }
+.badge-high     { background: #ffe3c2; color: #944b00; }
+.badge-critical { background: #ffd6d6; color: #9b1c1c; }
+
+/* -- Side panel ------------------------------------------------------------ */
 .side-panel {
     display: flex;
     flex-direction: column;
     gap: 20px;
+    height: 100%;       
+    overflow: hidden;
 }
 
-.info-box { flex: 1; }
-.info-box h3 { margin-top: 0; color: #444; }
-.content { color: #555; line-height: 1.6; }
+.info-box {
+    flex: 1;             
+    min-height: 0;       
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.info-box h3 { margin-bottom: 12px; color: #444; flex-shrink: 0; }
+
+.content {
+    color: #555;
+    line-height: 1.6;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    padding-right: 8px;
+}
+
+/* -- Detail rows inside Insights panel ------------------------------------ */
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid #e8e8e8;
+    font-size: 13px;
+}
+.detail-row:last-child { border-bottom: none; }
+.detail-label { color: #888; flex-shrink: 0; margin-right: 10px; }
+.detail-value { font-weight: 600; color: #333; text-align: right; }
+th.id-col,
+td.id-col,
+tr:hover td.id-col,
+tr.selected td.id-col { background-color: #daebed !important; font-weight: 700 !important; }

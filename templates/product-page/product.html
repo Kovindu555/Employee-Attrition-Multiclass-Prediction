@@ -2,65 +2,425 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Employee Risk Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='product_stylesheet.css') }}">
 </head>
 <body>
     <div class="container">
-    <nav class="navigation-bar">
-        <div class="product-identity">
-            <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="product-logo" class="product-logo">
-            <h1 class="product-name">Product Name</h1>
-        </div>
-        <div class="navigation-panel">
-            <a href="index.html" class="home">Home</a>
-            <a href="product.html" class="product active">Product</a>
-            <a href="#" class="team">Our Team</a>
-        </div>
-        <button class="login" onclick="">Get Started</button>
-    </nav>
-    
+        <nav class="navigation-bar">
+            <div class="product-identity">
+                <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="product-logo" class="product-logo">
+                <h1 class="product-name">Product Name</h1>
+            </div>
+            <div class="navigation-panel">
+                <a href="/" class="home">Home</a>
+                <a href="/about" class="product active">Product</a>
+                <a href="#" class="team">Our Team</a>
+            </div>
+
+            <div class="file-input-group">
+                <span id="datasetLabel" class="dataset-label">No file selected</span>
+                <label for="fileUpload" class="browse-btn">Browse Files</label>
+                <input
+                    type="file"
+                    id="fileUpload"
+                    accept=".csv"
+                    style="display: none;"
+                    onchange="handleFileSelect(this)"
+                >
+            </div>
+        </nav>
     </div>
 
     <main class="dashboard-container">
         <div class="main-card">
             <div class="card-header">
-                <h2>Employee Data</h2>
-                <input type="text" id="employeeSearch" placeholder="Search for employee ID..." onkeyup="filterEmployees()">
+                <h2 id="cardTitle">Employee Data</h2>
+                <div class="card-header-actions">
+                    <input
+                        type="text"
+                        id="employeeSearch"
+                        placeholder="Search by employee ID..."
+                        oninput="handleSearchInput()"
+                    >
+                    <button id="toggleDatasetBtn" class="action-btn" onclick="toggleDatasetView()" style="display:none;">
+                        View Full Dataset
+                    </button>
+                </div>
             </div>
-            
-            <div class="table-container">
+
+            <div id="tableMessage" class="table-message">
+                Browse a CSV file to view employee risk data.
+            </div>
+            <div id="loadingSpinner" class="loading-spinner" style="display:none;">
+                <div class="spinner"></div>
+                <span>Processing dataset...</span>
+            </div>
+
+            <div class="table-container" id="tableWrapper" style="display:none;">
                 <table>
                     <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Age</th>
-                            <th>Job Role</th>
-                            <th>Department</th>
-                            <th>Attrition Probability</th>
-                            <th>Risk Level</th>
-                        </tr>
+                        <tr id="tableHeaderRow"></tr>
                     </thead>
-                    <tbody id="employeeTableBody">
-                        </tbody>
+                    <tbody id="employeeTableBody"></tbody>
                 </table>
             </div>
         </div>
 
         <div class="side-panel">
             <div class="info-box" id="insightsBox">
-                <h3>Insights</h3>
+                <h3>Employee Information</h3>
                 <div class="content" id="insightsContent">Select an employee to view details.</div>
             </div>
             <div class="info-box" id="strategiesBox">
-                <h3>Strategies</h3>
-                <div class="content" id="strategiesContent">Recommended actions will appear here.</div>
+                <h3>Insights</h3>
+                <div class="content" id="strategiesContent"></div>
             </div>
         </div>
     </main>
 
-    <script src="script.js"></script>
+    <script>
+        // ── State ─────────────────────────────────────────────────────────────
+        let conciseColumns = [];   // columns from sample_predict (dashboard view)
+        let conciseRows    = [];   // rows from sample_predict, sorted by risk
+        let fullColumns    = [];   // columns from view_dataset (combined JSON)
+        let fullRows       = [];   // rows from view_dataset
+        let allColumns     = [];   // currently displayed columns
+        let allRows        = [];   // currently displayed rows
+        let employeeIndex  = {};   // O(1) lookup map: { id -> row }
+        let currentDataset = null; // full filename e.g. "csv_for_testing.csv"
+        let viewMode       = 'dashboard';  // 'dashboard' | 'full'
+        let lastSelectedId = null; // EmployeeID of the last clicked/searched row
+
+        // ── Risk sort order ───────────────────────────────────────────────────
+        function sortByRisk(columns, rows) {
+            const probCol = columns.find(c => c.toLowerCase() === 'attrition_probability');
+            if (!probCol) return rows;
+            return [...rows].sort((a, b) => {
+                // Values arrive as strings like "72.45%" — strip % and parse
+                const pa = parseFloat(String(a[probCol] || '0').replace('%', ''));
+                const pb = parseFloat(String(b[probCol] || '0').replace('%', ''));
+                return pb - pa;   // descending: highest probability on top
+            });
+        }
+
+        // ── Build O(1) employee index keyed by EmployeeID ─────────────────────
+        function buildIndex(columns, rows) {
+            const idCol = columns.find(c =>
+                c.toLowerCase() === 'employeeid' || c.toLowerCase() === 'id'
+            );
+            employeeIndex = {};
+            if (!idCol) return;
+            rows.forEach(row => {
+                const key = String(row[idCol] ?? '').trim();
+                if (key) employeeIndex[key] = row;
+            });
+        }
+
+        // ── Risk badge ────────────────────────────────────────────────────────
+        function riskBadge(value) {
+            const map = {
+                'low risk':      'badge badge-low',
+                'medium risk':   'badge badge-medium',
+                'high risk':     'badge badge-high',
+                'critical risk': 'badge badge-critical',
+            };
+            const cls = map[(value || '').toLowerCase()] || 'badge';
+            return `<span class="${cls}">${value}</span>`;
+        }
+
+        // ── Render a set of columns + rows into the table ─────────────────────
+        function renderTable(columns, rows) {
+            allColumns = columns;
+            allRows    = rows;
+
+            // In full-dataset view, pin the first column (EmployeeID) as sticky
+            const pinFirst = viewMode === 'full';
+
+            const idCol   = columns.find(c =>
+                c.toLowerCase() === 'employeeid' || c.toLowerCase() === 'id'
+            );
+
+            document.getElementById('tableHeaderRow').innerHTML =
+                columns.map((col, i) => {
+                    const classes = [];
+                    if (i === 0 && pinFirst) classes.push('sticky-col');
+                    if (col === idCol)        classes.push('id-col');
+                    const cls = classes.length ? ` class="${classes.join(' ')}"` : '';
+                    return `<th${cls}>${col}</th>`;
+                }).join('');
+
+            populateRows(rows, pinFirst);
+
+            document.getElementById('tableMessage').style.display = 'none';
+            document.getElementById('tableWrapper').style.display = '';
+        }
+
+        function populateRows(rows, pinFirst) {
+            const idCol = allColumns.find(c =>
+                c.toLowerCase() === 'employeeid' || c.toLowerCase() === 'id'
+            );
+            document.getElementById('employeeTableBody').innerHTML = rows.map((row, idx) => {
+                const cells = allColumns.map((col, i) => {
+                    const raw   = row[col] ?? '';
+                    const cell  = col.toLowerCase().includes('risk')
+                        ? riskBadge(raw)
+                        : escapeHtml(String(raw));
+                    const classes = [];
+                    if (i === 0 && pinFirst)  classes.push('sticky-col');
+                    if (col === idCol)         classes.push('id-col');
+                    const cls = classes.length ? ` class="${classes.join(' ')}"` : '';
+                    return `<td${cls}>${cell}</td>`;
+                }).join('');
+                return `<tr data-idx="${idx}" onclick="selectRow(${idx})">${cells}</tr>`;
+            }).join('');
+        }
+
+        // ── Row click → O(1) lookup → update Insights + address bar ──────────
+        function selectRow(idx) {
+            const row = allRows[idx];
+            if (!row) return;
+
+            document.querySelectorAll('#employeeTableBody tr').forEach(tr =>
+                tr.classList.toggle('selected', parseInt(tr.dataset.idx) === idx)
+            );
+
+            showInsightsFromRow(row);
+
+            const idCol = allColumns.find(c =>
+                c.toLowerCase() === 'employeeid' || c.toLowerCase() === 'id'
+            );
+            if (idCol && currentDataset) {
+                const empId = String(row[idCol] ?? '').trim();
+                if (empId) {
+                    lastSelectedId = empId;
+                    history.pushState(null, '', `/${currentDataset}/select_employee_id=${empId}`);
+                }
+            }
+        }
+
+        // ── Search: instant O(1) client-side lookup by EmployeeID ─────────────
+        function handleSearchInput() {
+            const query = document.getElementById('employeeSearch').value.trim();
+
+            if (!query) {
+                // Restore current view
+                populateRows(allRows);
+                document.getElementById('insightsContent').textContent = 'Select an employee to view details.';
+                if (currentDataset) {
+                    const base = viewMode === 'full' ? 'view_dataset' : 'Dashboard';
+                    history.pushState(null, '', `/${currentDataset}/${base}`);
+                }
+                return;
+            }
+
+            const match = employeeIndex[query];
+            if (match) {
+                // Highlight matching row in the table
+                const matchIdx = allRows.indexOf(match);
+                populateRows(allRows, viewMode === 'full');
+                if (matchIdx !== -1) {
+                    const rows = document.querySelectorAll('#employeeTableBody tr');
+                    rows.forEach(tr => tr.classList.remove('selected'));
+                    if (rows[matchIdx]) {
+                        rows[matchIdx].classList.add('selected');
+                        rows[matchIdx].scrollIntoView({ block: 'nearest' });
+                    }
+                }
+                showInsightsFromRow(match);
+                if (currentDataset) {
+                    lastSelectedId = query;
+                    history.pushState(null, '', `/${currentDataset}/select_employee_id=${query}`);
+                }
+            } else {
+                // Filter to rows whose EmployeeID starts with the query
+                const partial = allRows.filter(r => {
+                    const idCol = allColumns.find(c =>
+                        c.toLowerCase() === 'employeeid' || c.toLowerCase() === 'id'
+                    );
+                    return idCol && String(r[idCol] ?? '').startsWith(query);
+                });
+                populateRows(partial.length ? partial : allRows, viewMode === 'full');
+            }
+        }
+
+        function showInsightsFromRow(row) {
+            document.getElementById('insightsContent').innerHTML =
+                allColumns.map(col =>
+                    `<div class="detail-row">
+                        <span class="detail-label">${escapeHtml(col)}</span>
+                        <span class="detail-value">${escapeHtml(String(row[col] ?? '—'))}</span>
+                     </div>`
+                ).join('');
+        }
+
+        // ── Re-render Insights with the correct column set after a view toggle ─
+        function syncInsightsToView(columns, rows) {
+            if (!lastSelectedId) return;
+            const idCol = columns.find(c =>
+                c.toLowerCase() === 'employeeid' || c.toLowerCase() === 'id'
+            );
+            if (!idCol) return;
+            const matchIdx = rows.findIndex(r => String(r[idCol] ?? '').trim() === lastSelectedId);
+            if (matchIdx === -1) return;
+
+            // Re-apply selected highlight on the correct row
+            const trs = document.querySelectorAll('#employeeTableBody tr');
+            trs.forEach(tr => tr.classList.remove('selected'));
+            if (trs[matchIdx]) {
+                trs[matchIdx].classList.add('selected');
+                trs[matchIdx].scrollIntoView({ block: 'nearest' });
+            }
+
+            // Update Insights panel with the new column set
+            const prevColumns = allColumns;
+            allColumns = columns;
+            showInsightsFromRow(rows[matchIdx]);
+            allColumns = prevColumns;
+        }
+
+        // ── Toggle button: View Full Dataset <-> Dataset Outline ──────────────
+        function toggleDatasetView() {
+            if (!currentDataset) return;
+
+            if (viewMode === 'dashboard') {
+                // Switch to full dataset
+                if (fullRows.length) {
+                    // Already cached — no fetch needed
+                    viewMode = 'full';
+                    renderTable(fullColumns, fullRows);
+                    document.getElementById('cardTitle').textContent        = 'Full Dataset';
+                    document.getElementById('toggleDatasetBtn').textContent = 'Dataset Outline';
+                    syncInsightsToView(fullColumns, fullRows);
+                } else {
+                    showSpinner();
+                    fetch(`/${currentDataset}/view_dataset`, {
+                        headers: { 'Accept': 'application/json' }
+                    })
+                        .then(r => r.json())
+                        .then(data => {
+                            hideSpinner();
+                            if (data.error) { showMessage('Error: ' + data.error); return; }
+                            fullColumns = data.columns;
+                            fullRows    = sortByRisk(data.columns, data.rows);
+                            viewMode    = 'full';
+                            renderTable(fullColumns, fullRows);
+                            document.getElementById('cardTitle').textContent        = 'Full Dataset';
+                            document.getElementById('toggleDatasetBtn').textContent = 'Dataset Outline';
+                            syncInsightsToView(fullColumns, fullRows);
+                        })
+                        .catch(err => { hideSpinner(); showMessage('Error: ' + err.message); });
+                }
+            } else {
+                // Switch back to concise (dashboard) view
+                viewMode = 'dashboard';
+                renderTable(conciseColumns, conciseRows);
+                history.pushState(null, '', `/${currentDataset}/Dashboard`);
+                document.getElementById('cardTitle').textContent        = 'Employee Data';
+                document.getElementById('toggleDatasetBtn').textContent = 'View Full Dataset';
+                syncInsightsToView(conciseColumns, conciseRows);
+            }
+        }
+
+        // ── File browse ───────────────────────────────────────────────────────
+        function handleFileSelect(input) {
+            const file = input.files[0];
+            if (!file) return;
+            document.getElementById('datasetLabel').textContent = file.name;
+            uploadFile(file);
+        }
+
+        function uploadFile(file) {
+            showSpinner();
+
+            const fd = new FormData();
+            fd.append('file', file);
+
+            fetch('/upload', { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(data => {
+                    hideSpinner();
+                    if (data.error) { showMessage('Error: ' + data.error); return; }
+
+                    currentDataset = data.dataset;   // full filename e.g. foo.csv
+                    viewMode       = 'dashboard';
+
+                    // Cache concise dataset and build O(1) index
+                    conciseColumns = data.columns;
+                    conciseRows    = sortByRisk(data.columns, data.rows);
+                    fullColumns    = [];
+                    fullRows       = [];
+                    buildIndex(conciseColumns, conciseRows);
+
+                    history.pushState(null, '', `/${currentDataset}/Dashboard`);
+                    renderTable(conciseColumns, conciseRows);
+
+                    document.getElementById('cardTitle').textContent        = 'Employee Data';
+                    document.getElementById('toggleDatasetBtn').style.display   = '';
+                    document.getElementById('toggleDatasetBtn').textContent = 'View Full Dataset';
+                    document.getElementById('employeeSearch').value         = '';
+                    document.getElementById('insightsContent').textContent  = 'Select an employee to view details.';
+                    document.getElementById('strategiesContent').textContent = '';
+                })
+                .catch(err => { hideSpinner(); showMessage('Error: ' + err.message); });
+        }
+
+        // ── Spinner helpers ───────────────────────────────────────────────────
+        function showSpinner() {
+            document.getElementById('tableMessage').style.display   = 'none';
+            document.getElementById('tableWrapper').style.display   = 'none';
+            document.getElementById('loadingSpinner').style.display = 'flex';
+        }
+
+        function hideSpinner() {
+            document.getElementById('loadingSpinner').style.display = 'none';
+        }
+
+        function showMessage(msg) {
+            const el = document.getElementById('tableMessage');
+            el.textContent = msg;
+            el.style.display = '';
+        }
+
+        function escapeHtml(s) {
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        // ── On page load: restore state from URL ──────────────────────────────
+        (function checkInitialUrl() {
+            const path      = window.location.pathname;
+            const matchDash = path.match(/^\/(.+\.csv)\/Dashboard$/);
+            const matchEmp  = path.match(/^\/(.+\.csv)\/select_employee_id=(.+)$/);
+
+            if (matchDash) {
+                currentDataset = matchDash[1];
+                document.getElementById('datasetLabel').textContent = currentDataset;
+                showSpinner();
+                fetch(`/${currentDataset}/Dashboard`, {
+                    headers: { 'Accept': 'application/json' }
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        hideSpinner();
+                        if (data.error) { showMessage('Error: ' + data.error); return; }
+                        conciseColumns = data.columns;
+                        conciseRows    = sortByRisk(data.columns, data.rows);
+                        buildIndex(conciseColumns, conciseRows);
+                        renderTable(conciseColumns, conciseRows);
+                        document.getElementById('toggleDatasetBtn').style.display   = '';
+                        document.getElementById('toggleDatasetBtn').textContent = 'View Full Dataset';
+                    })
+                    .catch(err => { hideSpinner(); showMessage('Error: ' + err.message); });
+
+            } else if (matchEmp) {
+                // Redirect to Dashboard — page will reload cleanly and restore from there
+                window.location.replace(`/${matchEmp[1]}/Dashboard`);
+            }
+        })();
+    </script>
 </body>
 </html>
