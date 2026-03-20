@@ -2,64 +2,713 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Employee Risk Dashboard</title>
-    <link rel="stylesheet" href="productstylesheet.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='product_stylesheet.css') }}">
+    <style>
+        /* ── Probability bar ─────────────────────────────────────────────── */
+        .prob-bar-wrap { margin: 4px 0 14px; }
+        .prob-bar-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .prob-bar-track {
+            height: 7px;
+            background: #dde2e8;
+            border-radius: 99px;
+            overflow: hidden;
+        }
+        .prob-bar-fill {
+            height: 100%;
+            border-radius: 99px;
+            transition: width 0.7s cubic-bezier(.4,0,.2,1);
+        }
+        .prob-bar-fill.low      { background: #1a7a3e; }
+        .prob-bar-fill.medium   { background: #856404; }
+        .prob-bar-fill.high     { background: #944b00; }
+        .prob-bar-fill.critical { background: #9b1c1c; }
+
+        /* ── Strategy feature groups ──────────────────────────────────── */
+        .strategy-feature-group { margin-bottom: 13px; }
+        .strategy-feature-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: #007589;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        .feature-badge {
+            font-size: 11px;
+            padding: 1px 8px;
+            border-radius: 99px;
+            background: #e8f6f8;
+            color: #005160;
+            font-weight: 600;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+        .level-pill {
+            font-size: 10px;
+            padding: 1px 7px;
+            border-radius: 99px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .level-pill.low      { background: #d4f7e0; color: #1a7a3e; }
+        .level-pill.medium   { background: #fff3cd; color: #856404; }
+        .level-pill.high     { background: #ffe3c2; color: #944b00; }
+        .level-pill.critical { background: #ffd6d6; color: #9b1c1c; }
+        .level-pill.na       { background: #daebed; color: #005160; }
+
+        /* ── Individual strategy card ─────────────────────────────────── */
+        .strategy-card {
+            background: #ffffff;
+            border: 1px solid #e0e8ea;
+            border-left: 3px solid #007589;
+            border-radius: 8px;
+            padding: 8px 11px;
+            font-size: 12.5px;
+            color: #333;
+            margin-bottom: 5px;
+            line-height: 1.5;
+            transition: background 0.15s, border-left-color 0.15s;
+        }
+        .strategy-card:hover {
+            background: #f0f9fb;
+            border-left-color: #005160;
+        }
+
+        /* ── SHAP chip ────────────────────────────────────────────────── */
+        .shap-chip {
+            float: right;
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 99px;
+            margin-left: 6px;
+            font-weight: 700;
+        }
+        .shap-chip.pos { background: #ffe3c2; color: #944b00; }
+        .shap-chip.neg { background: #d4f7e0; color: #1a7a3e; }
+
+        /* ── Summary stats strip ──────────────────────────────────────── */
+        .strategy-summary-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 13px;
+        }
+        .summary-stat {
+            flex: 1;
+            background: #e8f6f8;
+            border-radius: 10px;
+            padding: 8px 6px;
+            text-align: center;
+            border: 1px solid #c5e8ed;
+        }
+        .summary-stat .stat-val {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #005160;
+            line-height: 1;
+        }
+        .summary-stat .stat-lbl {
+            font-size: 10px;
+            color: #007589;
+            margin-top: 3px;
+            font-weight: 500;
+        }
+
+        /* ── Loading / empty / warning states ────────────────────────── */
+        .strategies-loading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #888;
+            font-size: 13px;
+            padding: 8px 0;
+        }
+        .mini-spinner {
+            width: 15px; height: 15px;
+            border: 2px solid #dde2e8;
+            border-top-color: #007589;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            flex-shrink: 0;
+        }
+        .strategies-empty {
+            color: #aaa;
+            font-size: 13px;
+            font-style: italic;
+        }
+        .risk-only-note {
+            background: #fff8e6;
+            border: 1px solid #f5d87a;
+            border-radius: 8px;
+            padding: 9px 12px;
+            font-size: 12.5px;
+            color: #7a5200;
+            line-height: 1.5;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-    <nav class="navigation-bar">
-        <div class="product-identity">
-            <img src="./assets/logo.png" alt="product-logo" class="product-logo">
-            <h1 class="product-name">Product Name</h1>
-        </div>
-        <div class="navigation-panel">
-            <a href="index.html" class="home">Home</a>
-            <a href="product.html" class="product active">Product</a>
-            <a href="#" class="team">Our Team</a>
-        </div>
-        <button class="login" onclick="">Get Started</button>
-    </nav>
-    
+        <nav class="navigation-bar">
+            <div class="product-identity">
+                <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="product-logo" class="product-logo">
+                <h1 class="product-name">Product Name</h1>
+            </div>
+            <div class="navigation-panel">
+                <a href="/" class="home">Home</a>
+                <a href="/about" class="product active">Product</a>
+                <a href="#" class="team">Our Team</a>
+            </div>
+
+            <div class="file-input-group">
+                <span id="datasetLabel" class="dataset-label">No file selected</span>
+                <label for="fileUpload" class="browse-btn">Browse Files</label>
+                <input
+                    type="file"
+                    id="fileUpload"
+                    accept=".csv"
+                    style="display: none;"
+                    onchange="handleFileSelect(this)"
+                >
+            </div>
+        </nav>
     </div>
 
     <main class="dashboard-container">
         <div class="main-card">
             <div class="card-header">
-                <h2>Employee Data</h2>
-                <input type="text" id="employeeSearch" placeholder="Search for employee ID..." onkeyup="filterEmployees()">
+                <h2 id="cardTitle">Employee Data</h2>
+                <div class="card-header-actions">
+                    <input
+                        type="text"
+                        id="employeeSearch"
+                        placeholder="Search by employee ID..."
+                        oninput="handleSearchInput()"
+                    >
+                    <button id="toggleDatasetBtn" class="action-btn" onclick="toggleDatasetView()" style="display:none;">
+                        View Full Dataset
+                    </button>
+                </div>
             </div>
-            
-            <div class="table-container">
+
+            <div id="tableMessage" class="table-message">
+                Browse a CSV file to view employee risk data.
+            </div>
+            <div id="loadingSpinner" class="loading-spinner" style="display:none;">
+                <div class="spinner"></div>
+                <span>Processing dataset...</span>
+            </div>
+
+            <div class="table-container" id="tableWrapper" style="display:none;">
                 <table>
                     <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Risk Level</th>
-                            <th>Probability</th>
-                            <th>Action</th>
-                        </tr>
+                        <tr id="tableHeaderRow"></tr>
                     </thead>
-                    <tbody id="employeeTableBody">
-                        </tbody>
+                    <tbody id="employeeTableBody"></tbody>
                 </table>
             </div>
         </div>
 
         <div class="side-panel">
             <div class="info-box" id="insightsBox">
-                <h3>Insights</h3>
+                <h3>Employee Information</h3>
                 <div class="content" id="insightsContent">Select an employee to view details.</div>
             </div>
             <div class="info-box" id="strategiesBox">
-                <h3>Strategies</h3>
-                <div class="content" id="strategiesContent">Recommended actions will appear here.</div>
+                <h3>Retention Strategies</h3>
+                <div class="content" id="strategiesContent">
+                    <span class="strategies-empty">Select a high-risk employee to view strategies.</span>
+                </div>
             </div>
         </div>
     </main>
 
-    <script src="script.js"></script>
+    <script>
+        // ── State ─────────────────────────────────────────────────────────────
+        let conciseColumns = [];
+        let conciseRows    = [];
+        let fullColumns    = [];
+        let fullRows       = [];
+        let allColumns     = [];
+        let allRows        = [];
+        let employeeIndex  = {};
+        let currentDataset = null;
+        let viewMode       = 'dashboard';
+        let lastSelectedId = null;
+
+        // Cache strategies per employee to avoid repeat fetches
+        const strategyCache = {};
+
+        // ── Risk sort order ───────────────────────────────────────────────────
+        function sortByRisk(columns, rows) {
+            const probCol = columns.find(c => c.toLowerCase() === 'attrition_probability');
+            if (!probCol) return rows;
+            return [...rows].sort((a, b) => {
+                const pa = parseFloat(String(a[probCol] || '0').replace('%', ''));
+                const pb = parseFloat(String(b[probCol] || '0').replace('%', ''));
+                return pb - pa;
+            });
+        }
+
+        // ── Build O(1) employee index keyed by EmployeeID ─────────────────────
+        function buildIndex(columns, rows) {
+            const idCol = columns.find(c =>
+                c.toLowerCase() === 'employeeid' || c.toLowerCase() === 'id'
+            );
+            employeeIndex = {};
+            if (!idCol) return;
+            rows.forEach(row => {
+                const key = String(row[idCol] ?? '').trim();
+                if (key) employeeIndex[key] = row;
+            });
+        }
+
+        // ── Risk badge ────────────────────────────────────────────────────────
+        function riskBadge(value) {
+            const map = {
+                'low risk':      'badge badge-low',
+                'medium risk':   'badge badge-medium',
+                'high risk':     'badge badge-high',
+                'critical risk': 'badge badge-critical',
+            };
+            const cls = map[(value || '').toLowerCase()] || 'badge';
+            return `<span class="${cls}">${value}</span>`;
+        }
+
+        // ── Render table ──────────────────────────────────────────────────────
+        function renderTable(columns, rows) {
+            allColumns = columns;
+            allRows    = rows;
+            const pinFirst = viewMode === 'full';
+            const idCol = columns.find(c =>
+                c.toLowerCase() === 'employeeid' || c.toLowerCase() === 'id'
+            );
+            document.getElementById('tableHeaderRow').innerHTML =
+                columns.map((col, i) => {
+                    const classes = [];
+                    if (i === 0 && pinFirst) classes.push('sticky-col');
+                    if (col === idCol)        classes.push('id-col');
+                    const cls = classes.length ? ` class="${classes.join(' ')}"` : '';
+                    return `<th${cls}>${col}</th>`;
+                }).join('');
+            populateRows(rows, pinFirst);
+            document.getElementById('tableMessage').style.display = 'none';
+            document.getElementById('tableWrapper').style.display = '';
+        }
+
+        function populateRows(rows, pinFirst) {
+            const idCol = allColumns.find(c =>
+                c.toLowerCase() === 'employeeid' || c.toLowerCase() === 'id'
+            );
+            document.getElementById('employeeTableBody').innerHTML = rows.map((row, idx) => {
+                const cells = allColumns.map((col, i) => {
+                    const raw   = row[col] ?? '';
+                    const cell  = col.toLowerCase().includes('risk')
+                        ? riskBadge(raw)
+                        : escapeHtml(String(raw));
+                    const classes = [];
+                    if (i === 0 && pinFirst)  classes.push('sticky-col');
+                    if (col === idCol)         classes.push('id-col');
+                    const cls = classes.length ? ` class="${classes.join(' ')}"` : '';
+                    return `<td${cls}>${cell}</td>`;
+                }).join('');
+                return `<tr data-idx="${idx}" onclick="selectRow(${idx})">${cells}</tr>`;
+            }).join('');
+        }
+
+        // ── Row click ─────────────────────────────────────────────────────────
+        function selectRow(idx) {
+            const row = allRows[idx];
+            if (!row) return;
+
+            document.querySelectorAll('#employeeTableBody tr').forEach(tr =>
+                tr.classList.toggle('selected', parseInt(tr.dataset.idx) === idx)
+            );
+
+            showInsightsFromRow(row);
+
+            const idCol = allColumns.find(c =>
+                c.toLowerCase() === 'employeeid' || c.toLowerCase() === 'id'
+            );
+            if (idCol && currentDataset) {
+                const empId = String(row[idCol] ?? '').trim();
+                if (empId) {
+                    lastSelectedId = empId;
+                    history.pushState(null, '', `/${currentDataset}/select_employee_id=${empId}`);
+                    loadStrategies(empId, row);   // ← NEW: fetch strategies on row click
+                }
+            }
+        }
+
+        // ── Show employee info with probability bar ───────────────────────────
+        function showInsightsFromRow(row) {
+            const probCol = allColumns.find(c => c.toLowerCase() === 'attrition_probability');
+            let probHtml  = '';
+            if (probCol) {
+                const prob    = parseFloat(String(row[probCol] || '0').replace('%', ''));
+                const display = isNaN(prob) ? '—' : prob.toFixed(1) + '%';
+                const barCls  = prob >= 75 ? 'critical' : prob >= 50 ? 'high' : prob >= 25 ? 'medium' : 'low';
+                probHtml = `
+                    <div class="prob-bar-wrap">
+                        <div class="prob-bar-label">
+                            <span>Attrition Probability</span>
+                            <span>${display}</span>
+                        </div>
+                        <div class="prob-bar-track">
+                            <div class="prob-bar-fill ${barCls}" style="width:${Math.min(prob,100)}%"></div>
+                        </div>
+                    </div>`;
+            }
+            const details = allColumns
+                .filter(col => col.toLowerCase() !== 'attrition_probability')
+                .map(col =>
+                    `<div class="detail-row">
+                        <span class="detail-label">${escapeHtml(col)}</span>
+                        <span class="detail-value">${escapeHtml(String(row[col] ?? '—'))}</span>
+                     </div>`
+                ).join('');
+            document.getElementById('insightsContent').innerHTML = probHtml + details;
+        }
+
+        // ── Is this employee high/critical risk? ──────────────────────────────
+        function isHighRisk(row) {
+            const riskCol = allColumns.find(c =>
+                c.toLowerCase() === 'predicted_risk' || c.toLowerCase() === 'risk'
+            );
+            if (riskCol) {
+                const val = String(row[riskCol] || '').toLowerCase();
+                if (val.includes('high') || val.includes('critical')) return true;
+            }
+            const probCol = allColumns.find(c => c.toLowerCase() === 'attrition_probability');
+            if (probCol) {
+                const prob = parseFloat(String(row[probCol] || '0').replace('%', ''));
+                return prob >= 50;
+            }
+            return false;
+        }
+
+        // ── Fetch strategies from backend ─────────────────────────────────────
+        function loadStrategies(empId, row) {
+            const box = document.getElementById('strategiesContent');
+
+            if (strategyCache[empId]) {
+                box.innerHTML = `<div class="risk-only-note">
+                    ℹ️ Retention strategies are generated for
+                    <strong>High Risk</strong> and <strong>Critical Risk</strong> employees only.
+                </div>`;
+                return;
+            }
+
+            if (strategyCache[empId]) {
+                renderStrategies(strategyCache[empId]);
+                return;
+            }
+
+            box.innerHTML = `<div class="strategies-loading">
+                <div class="mini-spinner"></div>
+                <span>Loading strategies…</span>
+            </div>`;
+
+            fetch(`/${currentDataset}/strategy/employee=${empId}`, {
+                headers: { 'Accept': 'application/json' }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    box.innerHTML = `<div class="risk-only-note">⚠️ ${escapeHtml(data.error)}</div>`;
+                    return;
+                }
+                strategyCache[empId] = data.result;
+                renderStrategies(data.result);
+            })
+            .catch(err => {
+                box.innerHTML = `<div class="risk-only-note">⚠️ Failed to load: ${escapeHtml(err.message)}</div>`;
+            });
+        }
+
+        // ── Render strategies grouped by feature ──────────────────────────────
+        function renderStrategies(result) {
+            const box        = document.getElementById('strategiesContent');
+            const strategies = result.Strategies || [];
+
+            if (!strategies.length) {
+                box.innerHTML = `<span class="strategies-empty">No strategies found for this employee.</span>`;
+                return;
+            }
+
+            const grouped = {};
+            strategies.forEach(s => {
+                const key = s.Feature || 'General';
+                if (!grouped[key]) grouped[key] = [];
+                grouped[key].push(s);
+            });
+
+            const total    = strategies.length;
+            const features = Object.keys(grouped).length;
+            const role     = result.Role || '—';
+
+            let html = `
+                <div class="strategy-summary-bar">
+                    <div class="summary-stat">
+                        <div class="stat-val">${total}</div>
+                        <div class="stat-lbl">Strategies</div>
+                    </div>
+                    <div class="summary-stat">
+                        <div class="stat-val">${features}</div>
+                        <div class="stat-lbl">Key Factors</div>
+                    </div>
+                    <div class="summary-stat">
+                        <div class="stat-val" style="font-size:0.82rem">${escapeHtml(role)}</div>
+                        <div class="stat-lbl">Role Group</div>
+                    </div>
+                </div>`;
+
+            Object.entries(grouped).forEach(([feature, items]) => {
+                const first    = items[0];
+                const level    = (first.ClusterLevel || 'N/A').toLowerCase();
+                const levelCls = level === 'n/a' ? 'na' : level;
+                const val      = first.FeatureValue !== undefined ? String(first.FeatureValue) : '';
+
+                html += `<div class="strategy-feature-group">
+                    <div class="strategy-feature-title">
+                        ${escapeHtml(feature)}
+                        ${val ? `<span class="feature-badge">${escapeHtml(val)}</span>` : ''}
+                        <span class="level-pill ${levelCls}">${escapeHtml(first.ClusterLevel || 'N/A')}</span>
+                    </div>`;
+
+                items.forEach(s => {
+                    const shap = s.SHAP_Impact;
+                    let shapHtml = '';
+                    if (shap !== null && shap !== undefined) {
+                        const sign  = shap >= 0 ? 'pos' : 'neg';
+                        const arrow = shap >= 0 ? '↑' : '↓';
+                        shapHtml = `<span class="shap-chip ${sign}">${arrow} ${Math.abs(shap).toFixed(3)}</span>`;
+                    }
+                    html += `<div class="strategy-card">${shapHtml}${escapeHtml(s.RecommendedStrategy)}</div>`;
+                });
+
+                html += `</div>`;
+            });
+
+            box.innerHTML = html;
+        }
+
+        // ── Search ────────────────────────────────────────────────────────────
+        function handleSearchInput() {
+            const query = document.getElementById('employeeSearch').value.trim();
+
+            if (!query) {
+                populateRows(allRows);
+                document.getElementById('insightsContent').textContent = 'Select an employee to view details.';
+                document.getElementById('strategiesContent').innerHTML =
+                    '<span class="strategies-empty">Select a high-risk employee to view strategies.</span>';
+                if (currentDataset) {
+                    const base = viewMode === 'full' ? 'view_dataset' : 'Dashboard';
+                    history.pushState(null, '', `/${currentDataset}/${base}`);
+                }
+                return;
+            }
+
+            const match = employeeIndex[query];
+            if (match) {
+                const matchIdx = allRows.indexOf(match);
+                populateRows(allRows, viewMode === 'full');
+                if (matchIdx !== -1) {
+                    const rows = document.querySelectorAll('#employeeTableBody tr');
+                    rows.forEach(tr => tr.classList.remove('selected'));
+                    if (rows[matchIdx]) {
+                        rows[matchIdx].classList.add('selected');
+                        rows[matchIdx].scrollIntoView({ block: 'nearest' });
+                    }
+                }
+                showInsightsFromRow(match);
+                if (currentDataset) {
+                    lastSelectedId = query;
+                    history.pushState(null, '', `/${currentDataset}/select_employee_id=${query}`);
+                    loadStrategies(query, match);
+                }
+            } else {
+                const partial = allRows.filter(r => {
+                    const idCol = allColumns.find(c =>
+                        c.toLowerCase() === 'employeeid' || c.toLowerCase() === 'id'
+                    );
+                    return idCol && String(r[idCol] ?? '').startsWith(query);
+                });
+                populateRows(partial.length ? partial : allRows, viewMode === 'full');
+            }
+        }
+
+        // ── Sync insights after view toggle ───────────────────────────────────
+        function syncInsightsToView(columns, rows) {
+            if (!lastSelectedId) return;
+            const idCol = columns.find(c =>
+                c.toLowerCase() === 'employeeid' || c.toLowerCase() === 'id'
+            );
+            if (!idCol) return;
+            const matchIdx = rows.findIndex(r => String(r[idCol] ?? '').trim() === lastSelectedId);
+            if (matchIdx === -1) return;
+
+            const trs = document.querySelectorAll('#employeeTableBody tr');
+            trs.forEach(tr => tr.classList.remove('selected'));
+            if (trs[matchIdx]) {
+                trs[matchIdx].classList.add('selected');
+                trs[matchIdx].scrollIntoView({ block: 'nearest' });
+            }
+
+            const prevColumns = allColumns;
+            allColumns = columns;
+            showInsightsFromRow(rows[matchIdx]);
+            allColumns = prevColumns;
+        }
+
+        // ── Toggle full dataset / dashboard ───────────────────────────────────
+        function toggleDatasetView() {
+            if (!currentDataset) return;
+
+            if (viewMode === 'dashboard') {
+                if (fullRows.length) {
+                    viewMode = 'full';
+                    renderTable(fullColumns, fullRows);
+                    document.getElementById('cardTitle').textContent        = 'Full Dataset';
+                    document.getElementById('toggleDatasetBtn').textContent = 'Dataset Outline';
+                    syncInsightsToView(fullColumns, fullRows);
+                } else {
+                    showSpinner();
+                    fetch(`/${currentDataset}/view_dataset`, {
+                        headers: { 'Accept': 'application/json' }
+                    })
+                        .then(r => r.json())
+                        .then(data => {
+                            hideSpinner();
+                            if (data.error) { showMessage('Error: ' + data.error); return; }
+                            fullColumns = data.columns;
+                            fullRows    = sortByRisk(data.columns, data.rows);
+                            viewMode    = 'full';
+                            renderTable(fullColumns, fullRows);
+                            document.getElementById('cardTitle').textContent        = 'Full Dataset';
+                            document.getElementById('toggleDatasetBtn').textContent = 'Dataset Outline';
+                            syncInsightsToView(fullColumns, fullRows);
+                        })
+                        .catch(err => { hideSpinner(); showMessage('Error: ' + err.message); });
+                }
+            } else {
+                viewMode = 'dashboard';
+                renderTable(conciseColumns, conciseRows);
+                history.pushState(null, '', `/${currentDataset}/Dashboard`);
+                document.getElementById('cardTitle').textContent        = 'Employee Data';
+                document.getElementById('toggleDatasetBtn').textContent = 'View Full Dataset';
+                syncInsightsToView(conciseColumns, conciseRows);
+            }
+        }
+
+        // ── File browse ───────────────────────────────────────────────────────
+        function handleFileSelect(input) {
+            const file = input.files[0];
+            if (!file) return;
+            document.getElementById('datasetLabel').textContent = file.name;
+            uploadFile(file);
+        }
+
+        function uploadFile(file) {
+            showSpinner();
+            const fd = new FormData();
+            fd.append('file', file);
+
+            fetch('/upload', { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(data => {
+                    hideSpinner();
+                    if (data.error) { showMessage('Error: ' + data.error); return; }
+
+                    currentDataset = data.dataset;
+                    viewMode       = 'dashboard';
+
+                    conciseColumns = data.columns;
+                    conciseRows    = sortByRisk(data.columns, data.rows);
+                    fullColumns    = [];
+                    fullRows       = [];
+                    buildIndex(conciseColumns, conciseRows);
+
+                    Object.keys(strategyCache).forEach(k => delete strategyCache[k]);
+
+                    history.pushState(null, '', `/${currentDataset}/Dashboard`);
+                    renderTable(conciseColumns, conciseRows);
+
+                    document.getElementById('cardTitle').textContent            = 'Employee Data';
+                    document.getElementById('toggleDatasetBtn').style.display   = '';
+                    document.getElementById('toggleDatasetBtn').textContent     = 'View Full Dataset';
+                    document.getElementById('employeeSearch').value             = '';
+                    document.getElementById('insightsContent').textContent      = 'Select an employee to view details.';
+                    document.getElementById('strategiesContent').innerHTML      =
+                        '<span class="strategies-empty">Select a high-risk employee to view strategies.</span>';
+                })
+                .catch(err => { hideSpinner(); showMessage('Error: ' + err.message); });
+        }
+
+        // ── Spinner helpers ───────────────────────────────────────────────────
+        function showSpinner() {
+            document.getElementById('tableMessage').style.display   = 'none';
+            document.getElementById('tableWrapper').style.display   = 'none';
+            document.getElementById('loadingSpinner').style.display = 'flex';
+        }
+        function hideSpinner() {
+            document.getElementById('loadingSpinner').style.display = 'none';
+        }
+        function showMessage(msg) {
+            const el = document.getElementById('tableMessage');
+            el.textContent = msg;
+            el.style.display = '';
+        }
+        function escapeHtml(s) {
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        // ── Restore state from URL on page load ───────────────────────────────
+        (function checkInitialUrl() {
+            const path      = window.location.pathname;
+            const matchDash = path.match(/^\/(.+\.csv)\/Dashboard$/);
+            const matchEmp  = path.match(/^\/(.+\.csv)\/select_employee_id=(.+)$/);
+
+            if (matchDash) {
+                currentDataset = matchDash[1];
+                document.getElementById('datasetLabel').textContent = currentDataset;
+                showSpinner();
+                fetch(`/${currentDataset}/Dashboard`, {
+                    headers: { 'Accept': 'application/json' }
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        hideSpinner();
+                        if (data.error) { showMessage('Error: ' + data.error); return; }
+                        conciseColumns = data.columns;
+                        conciseRows    = sortByRisk(data.columns, data.rows);
+                        buildIndex(conciseColumns, conciseRows);
+                        renderTable(conciseColumns, conciseRows);
+                        document.getElementById('toggleDatasetBtn').style.display   = '';
+                        document.getElementById('toggleDatasetBtn').textContent     = 'View Full Dataset';
+                    })
+                    .catch(err => { hideSpinner(); showMessage('Error: ' + err.message); });
+
+            } else if (matchEmp) {
+                window.location.replace(`/${matchEmp[1]}/Dashboard`);
+            }
+        })();
+    </script>
 </body>
 </html>
