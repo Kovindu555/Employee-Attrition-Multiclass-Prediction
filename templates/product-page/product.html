@@ -74,8 +74,24 @@
                 <div class="content" id="insightsContent">Select an employee to view details.</div>
             </div>
             <div class="info-box" id="strategiesBox">
-                <h3>Insights</h3>
-                <div class="content" id="strategiesContent"></div>
+                <div class="insights-header">
+                    <div>
+                        <h3>Global Feature Interpretation (LIME)</h3>
+                        <p class="insights-subtitle">Impact of features on predictive risk across all departments</p>
+                    </div>
+                    <div class="insights-header-controls">
+                        <select id="jobRoleSelect" class="jobrole-select" onchange="renderInsightsBars(window._insightsData)" style="display:none;">
+                            <option value="__all__">All Roles</option>
+                        </select>
+                        <div class="insights-legend">
+                            <span class="legend-item legend-positive">Positive Impact</span>
+                            <span class="legend-item legend-negative">Negative Impact</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="content" id="strategiesContent">
+                    <p class="table-message">Load a dataset to view feature insights.</p>
+                </div>
             </div>
         </div>
     </main>
@@ -361,6 +377,7 @@
                     document.getElementById('toggleDatasetBtn').textContent = 'View Full Dataset';
                     document.getElementById('employeeSearch').value         = '';
                     document.getElementById('insightsContent').textContent  = 'Select an employee to view details.';
+                    fetchGlobalInsights(data.dataset);
                     document.getElementById('strategiesContent').textContent = '';
                 })
                 .catch(err => { hideSpinner(); showMessage('Error: ' + err.message); });
@@ -413,6 +430,7 @@
                         renderTable(conciseColumns, conciseRows);
                         document.getElementById('toggleDatasetBtn').style.display   = '';
                         document.getElementById('toggleDatasetBtn').textContent = 'View Full Dataset';
+                        fetchGlobalInsights(currentDataset);
                     })
                     .catch(err => { hideSpinner(); showMessage('Error: ' + err.message); });
 
@@ -421,6 +439,103 @@
                 window.location.replace(`/${matchEmp[1]}/Dashboard`);
             }
         })();
+
+        // ── Fetch and render Global LIME feature insights ─────────────────────
+        // REPLACE WITH
+        function fetchGlobalInsights(dataset) {
+            document.getElementById('strategiesContent').innerHTML =
+                '<div class="loading-spinner"><div class="spinner"></div><span>Computing insights...</span></div>';
+
+            fetch(`/${dataset}/global_insights`, { headers: { 'Accept': 'application/json' } })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.error) {
+                        document.getElementById('strategiesContent').innerHTML =
+                            `<p class="table-message">Error: ${escapeHtml(data.error)}</p>`;
+                        return;
+                    }
+
+                    // Cache on window so the dropdown onchange can re-render without re-fetching
+                    window._insightsData = data.explanations;
+
+                    // Populate dropdown with available JobRoles
+                    const select = document.getElementById('jobRoleSelect');
+                    select.innerHTML = '<option value="__all__">All Roles</option>';
+                    Object.keys(data.explanations).forEach(role => {
+                        const opt = document.createElement('option');
+                        opt.value = role;
+                        opt.textContent = role;
+                        select.appendChild(opt);
+                    });
+                    select.value = '__all__';
+                    select.style.display = '';
+
+                    renderInsightsBars(data.explanations);
+                })
+                .catch(() => {
+                    document.getElementById('strategiesContent').innerHTML =
+                        `<p class="table-message">Failed to load insights.</p>`;
+                });
+        }
+
+        // REPLACE WITH
+        function renderInsightsBars(explanations) {
+            const selectedRole = document.getElementById('jobRoleSelect')?.value || '__all__';
+
+            // Either use the selected role's data, or flatten all roles
+            let featureTotals = {};
+            if (selectedRole === '__all__') {
+                Object.values(explanations).forEach(featureList => {
+                    featureList.forEach(([feat, weight]) => {
+                        if (!featureTotals[feat]) featureTotals[feat] = [];
+                        featureTotals[feat].push(weight);
+                    });
+                });
+            } else {
+                (explanations[selectedRole] || []).forEach(([feat, weight]) => {
+                    if (!featureTotals[feat]) featureTotals[feat] = [];
+                    featureTotals[feat].push(weight);
+                });
+            }
+
+            const aggregated = Object.entries(featureTotals)
+                .map(([feat, weights]) => {
+                    const mean = weights.reduce((a, b) => a + b, 0) / weights.length;
+                    return { feat, mean };
+                });
+
+            // Deduplicate by clean feature name, keep highest absolute mean
+            const seen = new Map();
+            aggregated.forEach(({ feat, mean }) => {
+                const clean = (feat.match(/([A-Za-z_][A-Za-z0-9_]*)/) || [null, feat])[1];
+                if (!seen.has(clean) || Math.abs(mean) > Math.abs(seen.get(clean).mean)) {
+                    seen.set(clean, { feat: clean, mean });
+                }
+            });
+
+            const deduped = [...seen.values()]
+                .sort((a, b) => Math.abs(b.mean) - Math.abs(a.mean))
+                .slice(0, 8);
+
+            const maxAbs = Math.max(...deduped.map(d => Math.abs(d.mean)));
+
+            const html = deduped.map(({ feat, mean }) => {
+                const pct     = (Math.abs(mean) / maxAbs * 100).toFixed(1);
+                const color   = mean >= 0 ? '#22c55e' : '#ef4444';
+                const label   = Math.abs(mean).toFixed(2);
+                return `
+                <div class="insight-bar-row">
+                    <span class="insight-feat-label">${escapeHtml(feat)}</span>
+                    <div class="insight-bar-track">
+                        <div class="insight-bar-fill" style="width:${pct}%;background:${color};"></div>
+                    </div>
+                    <span class="insight-bar-value">${label}</span>
+                </div>`;
+            }).join('');
+
+            document.getElementById('strategiesContent').innerHTML =
+                html || '<p class="table-message">No data.</p>';
+        }
     </script>
 </body>
 </html>

@@ -290,3 +290,94 @@ th.id-col,
 td.id-col,
 tr:hover td.id-col,
 tr.selected td.id-col { background-color: #daebed !important; font-weight: 700 !important; }
+
+/* -- Global Insights panel ------------------------------------------------- */
+.insights-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+    flex-shrink: 0;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.insights-header h3 { margin-bottom: 2px; color: #333; }
+.insights-subtitle  { font-size: 12px; color: #888; }
+
+.insights-legend    { display: flex; gap: 8px; flex-shrink: 0; }
+.legend-item {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+}
+
+.legend-positive { background: #d4f7e0; color: #1a7a3e; }
+.legend-negative { background: #ffd6d6; color: #9b1c1c; }
+
+.insight-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.insight-feat-label {
+    font-size: 12px;
+    color: #444;
+    width: 130px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.insight-bar-track {
+    flex: 1;
+    height: 14px;
+    background: #e8e8e8;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.insight-bar-fill {
+    height: 100%;
+    border-radius: 20px;
+    transition: width 0.4s ease;
+}
+
+.insight-bar-value {
+    font-size: 12px;
+    font-weight: 600;
+    color: #555;
+    width: 32px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.insights-header-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.jobrole-select {
+    font-family: var(--primary-font);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid #ccc;
+    background: white;
+    color: #444;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 10px;
+}
+
+.jobrole-select:hover  { border-color: #007589; }
+.jobrole-select:focus  { border-color: #007589; }

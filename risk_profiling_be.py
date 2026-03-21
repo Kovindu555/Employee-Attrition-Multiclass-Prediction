@@ -1,5 +1,6 @@
 import pandas as pd
 import pickle
+import os
 # ------------------------------ Library Corner -----------------------------
 
 # ------------------------------ Secondary Tools ----------------------------
@@ -30,7 +31,7 @@ def results(y_test_proba, y_pred_binary, df, raw_df):
 def clean_dataset(employee_dataset):
 
     dataset_name = employee_dataset + '.csv'
-    dataset_directory = 'test_csv/' + dataset_name
+    dataset_directory = os.path.join(os.path.dirname(__file__), 'test_csv', dataset_name)
     df = pd.read_csv(dataset_directory)
 
     # -- DroppingUnwantedColumns --
@@ -66,8 +67,7 @@ def clean_dataset(employee_dataset):
 def sample_predict(employee_dataset):
 
     combined_dataset(employee_dataset)
-    combined_table = pd.read_json('jsons/combined_df_table.json')
-
+    combined_table = pd.read_json(os.path.join(os.path.dirname(__file__), 'jsons', 'combined_df_table.json'))
     columns = [0, 1, 14, 4, 34, 35]
     dashboard_pred = combined_table.iloc[:, columns].copy()
     return dashboard_pred
@@ -75,12 +75,14 @@ def sample_predict(employee_dataset):
 def combined_dataset(employee_dataset):
 
     raw_dataset_name = employee_dataset + '.csv'
-    raw_dataset_directory = 'test_csv/' + raw_dataset_name
+    raw_dataset_directory = os.path.join(os.path.dirname(__file__), 'test_csv', raw_dataset_name)
     raw_dataset = pd.read_csv(raw_dataset_directory)
 
     dataset = clean_dataset(employee_dataset)
 
-    model = pickle.load(open('models/model.pkl', 'rb'))
+    # Use absolute path to ensure model loads correctly regardless of working directory
+    model_path = os.path.join(os.path.dirname(__file__), 'models', 'model.pkl')
+    model = pickle.load(open(model_path, 'rb'))
 
     df = dataset.drop(columns=['EmployeeID']).copy()
 
@@ -90,7 +92,7 @@ def combined_dataset(employee_dataset):
     results_table = results(y_test_proba, y_pred_binary, dataset, raw_dataset)
     cols = results_table.iloc[:, [4, 5]]
     combined_df = pd.concat([raw_dataset, cols], axis=1)
-    combined_df.to_json('jsons/combined_df_table.json', orient='records', indent=4)
+    combined_df.to_json(os.path.join(os.path.dirname(__file__), 'jsons', 'combined_df_table.json'), orient='records', indent=4)
 
     return combined_df
 
@@ -98,7 +100,7 @@ def combined_dataset(employee_dataset):
 def search_employee_id(employee_dataset, search_id):
 
     combined_dataset(employee_dataset)
-    employee_data = pd.read_json('jsons/combined_df_table.json')
+    employee_data = pd.read_json(os.path.join(os.path.dirname(__file__), 'jsons', 'combined_df_table.json'))
 
     if employee_data.index.name != 'EmployeeID':
         employee_data = employee_data.set_index('EmployeeID')

@@ -28,5 +28,17 @@
             </div>
         </div>
     </div>
+
+    <script>
+        document.querySelector('.product').addEventListener('click', function() {
+            fetch('/product')
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                    // You can also update the UI with the received data if needed
+                })
+                .catch(error => console.error('Error fetching product data:', error));
+        });
+    </script>
 </body>
 </html>
