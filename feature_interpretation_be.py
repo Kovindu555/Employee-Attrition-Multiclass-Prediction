@@ -17,7 +17,7 @@ model = pickle.load(open(model_path, 'rb'))
 
 
 def explainn(X_test, model=model, feature_names=None, class_names=None, 
-                                 group_col='JobRole', num_samples=1000, 
+                                 group_col='JobRole', num_samples=200, 
                                  num_features=10, random_state=42):
     if isinstance(X_test, np.ndarray):
         X_test = pd.DataFrame(X_test, columns=feature_names)
@@ -78,7 +78,7 @@ def explainn(X_test, model=model, feature_names=None, class_names=None,
     return group_explanations
 
 
-def get_employee_shap_values(model, employee_id, dataset):
+def get_employee_shap_values( employee_id, dataset, model=model):
     # Load dataset
     df = dataset.copy()
     
