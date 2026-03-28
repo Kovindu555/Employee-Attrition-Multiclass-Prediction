@@ -77,25 +77,21 @@ def get_global_insights(employee_dataset):
     dataset_name = employee_dataset[:-4] if employee_dataset.endswith('.csv') else employee_dataset
     try:
         df_clean = rpb.clean_dataset(dataset_name)
-
+ 
         model_path = os.path.join(os.path.dirname(__file__), 'models', 'model.pkl')
         model = pickle.load(open(model_path, 'rb'))
-
-        feature_cols = [c for c in df_clean.columns if c not in ['EmployeeID', 'Attrition']]
-        X_test = df_clean[feature_cols].copy()
-
-        group_explanations = fib.explainn(
-            X_test=X_test,
+ 
+        group_explanations = fib.get_jobrole_shap_values(
+            dataset=df_clean,
             model=model,
-            class_names=['Stay', 'Attrite'],
             group_col='JobRole'
         )
-
+ 
         jobrole_map = {0: 'Other', 1: 'Nurse', 2: 'Therapist', 3: 'Administrative', 4: 'Admin'}
         serializable = {jobrole_map.get(k, str(k)): v for k, v in group_explanations.items()}
         return jsonify({'explanations': serializable})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500  
+        return jsonify({'error': str(e)}), 500 
 
 
 @app.route('/<path:employee_dataset>/view_dataset', methods=['GET'])

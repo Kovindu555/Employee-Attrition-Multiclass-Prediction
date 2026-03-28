@@ -1,8 +1,5 @@
 # import libraries and suppress warnings
 import os
-
-import os
-
 import pandas as pd
 import numpy as np
 from lime.lime_tabular import LimeTabularExplainer
@@ -16,111 +13,106 @@ model_path = os.path.join(os.path.dirname(__file__), 'models', 'model.pkl')
 model = pickle.load(open(model_path, 'rb'))
 
 
-def explainn(X_test, model=model, feature_names=None, class_names=None, 
-                                 group_col='JobRole', num_samples=200, 
-                                 num_features=10, random_state=42):
-    if isinstance(X_test, np.ndarray):
-        X_test = pd.DataFrame(X_test, columns=feature_names)
-    
-    feature_cols = [c for c in X_test.columns if c != group_col]
-    X_features = X_test[feature_cols].values
-    
-    explainer = LimeTabularExplainer(
-        X_features,
-        feature_names=feature_cols,
-        class_names=class_names,
-        discretize_continuous=True,
-        random_state=random_state
-    )
-    
-    groups = X_test.groupby(group_col)
-    group_explanations = {}
-    
-    for group_val, group_df in groups:
-        group_features = group_df[feature_cols].values
-        all_explanations = []
-        
-        group_job_role_val = group_df[group_col].iloc[0]  # numeric JobRole for this group
+def get_jobrole_shap_values(dataset, model=model, group_col='JobRole', num_features=10):
+    """
+    Computes mean absolute SHAP values per JobRole group.
 
-        def predict_with_jobrole(perturbed_matrix):
-            # perturbed_matrix has 33 cols — reinsert JobRole at its original position
-            job_role_idx = list(X_test.columns).index(group_col)
-            left  = perturbed_matrix[:, :job_role_idx]
-            right = perturbed_matrix[:, job_role_idx:]
-            col   = np.full((perturbed_matrix.shape[0], 1), group_job_role_val)
-            full  = np.hstack([left, col, right])
-            return model.predict_proba(full)
+    Parameters:
+        dataset     : pd.DataFrame — the cleaned dataset (must include JobRole, EmployeeID, Attrition)
+        model       : trained sklearn-compatible model
+        group_col   : column name to group by (default: 'JobRole')
+        num_features: how many top features to return per group
 
-        for idx in range(len(group_features)):
-            instance = group_features[idx]
-            exp = explainer.explain_instance(
-                instance,
-                predict_with_jobrole,   # ← wrapper instead of model.predict_proba directly
-                num_samples=num_samples,
-                num_features=num_features
-            )
-            all_explanations.append(exp.as_list())
-        
-        # Aggregate by feature
-        feature_weights = {}
-        for exp_list in all_explanations:
-            for feature_desc, weight in exp_list:
-                if feature_desc not in feature_weights:
-                    feature_weights[feature_desc] = []
-                feature_weights[feature_desc].append(weight)
-        
-        # Calculate mean and sort by absolute value
-        aggregated = [(feat, float(np.mean(weights))) for feat, weights in feature_weights.items()]
-        aggregated.sort(key=lambda x: abs(x[1]), reverse=True)
-        
-        group_explanations[group_val] = aggregated[:num_features]
-    
-    return group_explanations
-
-
-def get_employee_shap_values( employee_id, dataset, model=model):
-    # Load dataset
+    Returns:
+        dict — { group_value: [(feature_name, mean_shap_value), ...] }
+    """
     df = dataset.copy()
-    
-    # Find employee by ID
-    employee_row = df[df['EmployeeID'] == employee_id]
-    
-    if employee_row.empty:
-        raise ValueError(f"EmployeeID {employee_id} not found in dataset")
-    
-    # Get feature columns (exclude EmployeeID and target Attrition)
-    feature_cols = [col for col in df.columns if col not in ['EmployeeID', 'Attrition']]
-    
-    # Extract employee features as numpy array
-    employee_features = employee_row[feature_cols].values
-    
-    # Get the full dataset features (excluding ID and target)
+    feature_cols = [c for c in df.columns if c not in ['EmployeeID', 'Attrition']]
     X_full = df[feature_cols].values
-    
-    # Create SHAP explainer based on model type
+
+    # Build SHAP explainer — prefer TreeExplainer, fall back to KernelExplainer
     try:
         explainer = shap.TreeExplainer(model)
-    except:
+        shap_values_all = explainer.shap_values(X_full)
+        # For binary classifiers, shap_values may be a list [class0, class1]
+        if isinstance(shap_values_all, list):
+            shap_matrix = shap_values_all[1]   # class 1 = Attrite
+        else:
+            shap_matrix = shap_values_all
+    except Exception:
+        background_indices = np.random.choice(X_full.shape[0], min(30, X_full.shape[0]), replace=False)
+        background_data = X_full[background_indices]
+
         def model_predict(X):
             if hasattr(model, 'predict_proba'):
                 return model.predict_proba(X)[:, 1]
-            else:
-                return model.predict(X)
-        
-        # Use shap.Explainer with a masker (modern API that avoids the base_score issue)
-        background_indices = np.random.choice(X_full.shape[0], min(100, X_full.shape[0]), replace=False)
-        background_data = X_full[background_indices]
-        
+            return model.predict(X)
+
         masker = shap.maskers.Independent(background_data)
-        
         explainer = shap.Explainer(model_predict, masker, feature_names=feature_cols)
-        
-        shap_values = explainer(employee_features)
-        
-        shap_values_for_employee = shap_values.values[0]
-        
-    result = {}
-    for feature_name, shap_value in zip(feature_cols, shap_values_for_employee):
-        result[feature_name] = float(shap_value)
-    
+        shap_obj = explainer(X_full)
+        shap_matrix = shap_obj.values   # shape: (n_samples, n_features)
+
+    # Attach SHAP matrix back to the dataframe so we can group it
+    shap_df = pd.DataFrame(shap_matrix, columns=feature_cols, index=df.index)
+    shap_df[group_col] = df[group_col].values
+
+    group_explanations = {}
+    for group_val, group_shap in shap_df.groupby(group_col):
+        display_cols = [c for c in feature_cols if c != group_col]
+        feature_means = group_shap[display_cols].mean()         # signed mean per feature
+        top_features = (
+            feature_means
+            .reindex(feature_means.abs().sort_values(ascending=False).index)
+            .head(num_features)
+        )
+        group_explanations[group_val] = [(feat, float(val)) for feat, val in top_features.items()]
+
+    return group_explanations
+
+
+def get_employee_lime_values(employee_id, dataset, model=model,
+                              num_samples=200, num_features=10, random_state=42):
+    """
+    Computes LIME feature importances for a single employee.
+
+    Parameters:
+        employee_id : value to look up in the 'EmployeeID' column
+        dataset     : pd.DataFrame — the cleaned dataset
+        model       : trained sklearn-compatible model
+        num_samples : LIME perturbation samples
+        num_features: top features to return
+        random_state: reproducibility seed
+
+    Returns:
+        list of (feature_description, weight) tuples — sorted by |weight| descending
+    """
+    df = dataset.copy()
+
+    employee_row = df[df['EmployeeID'] == employee_id]
+    if employee_row.empty:
+        raise ValueError(f"EmployeeID {employee_id} not found in dataset")
+
+    feature_cols = [c for c in df.columns if c not in ['EmployeeID', 'Attrition']]
+    X_full = df[feature_cols].values
+
+    explainer = LimeTabularExplainer(
+        X_full,
+        feature_names=feature_cols,
+        class_names=['Stay', 'Attrite'],
+        discretize_continuous=True,
+        random_state=random_state
+    )
+
+    instance = employee_row[feature_cols].values[0]
+
+    exp = explainer.explain_instance(
+        instance,
+        model.predict_proba,
+        num_samples=num_samples,
+        num_features=num_features
+    )
+
+    result = exp.as_list()                              # [(feature_desc, weight), ...]
+    result.sort(key=lambda x: abs(x[1]), reverse=True)
     return result
