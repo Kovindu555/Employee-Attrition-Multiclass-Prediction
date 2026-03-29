@@ -473,14 +473,10 @@ def get_strategies(employee_dataset, top_n=5):
     combined_df = _load_combined_df()
     models = _build_quantile_models(combined_df)
 
-    #  Load SHAP values if available
-    import feature_interpretation_be as fib
+    
+    
     shap_lookup = {}
-    for emp_id in combined_df['EmployeeID']:
-        try:
-            shap_lookup[emp_id] = fib.get_employee_shap_values(int(emp_id), combined_df)
-        except Exception:
-            pass
+    
 
     all_results = []
 
@@ -535,10 +531,19 @@ def get_employee_strategy(employee_dataset, employee_id):
     #  Load SHAP for this employee if available
     shap_row = None
     try:
-        import output_integration_be as oib
-        shap_row = oib.get_employee_shap_values(emp_id_int, combined_df)
+        import feature_interpretation_be as fib
+        import risk_profiling_be as rpb
+        dataset_name = str(employee_dataset)[:-4] if str(employee_dataset).endswith('.csv') else str(employee_dataset)
+        cleaned_df = rpb.clean_dataset(dataset_name)
+        lime_values = fib.get_employee_lime_values(emp_id_int, cleaned_df)
+        shap_row = {}
+        for feature_desc, weight in lime_values:
+            for feature_name in FEATURES_FOR_STRATEGY:
+                if feature_name.lower() in feature_desc.lower():
+                    shap_row[feature_name] = weight
+                    break
     except Exception as e:
-        print(f"[WARN] SHAP unavailable for {emp_id_int}: {e}")
+        print(f"[WARN] LIME unavailable for {emp_id_int}: {e}")
 
     role_group, strategies = _get_strategies_for_employee(
         emp_row, models, top_n=5, shap_row=shap_row
