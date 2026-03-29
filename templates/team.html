@@ -11,13 +11,13 @@
 <div class="container">
     <nav class="navigation-bar">
         <div class="product-identity">
-            <img src="./assets/logo.png" alt="product-logo" class="product-logo">
+            <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="product-logo" class="product-logo">
             <h1 class="product-name">Product Name</h1>
         </div>
         <div class="navigation-panel">
-            <a href="index.html" class="home">Home</a>
-            <a href="product.html" class="product">Product</a>
-            <a href="team.html" class="team active">Our Team</a>
+            <a href="/" class="home">Home</a>
+            <a href="/about" class="product">Product</a>
+            <a href="/team" class="team active">Our Team</a>
         </div>
         <button class="login" onclick="">Get Started</button>
     </nav>
