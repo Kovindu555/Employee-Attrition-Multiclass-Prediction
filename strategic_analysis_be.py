@@ -474,11 +474,11 @@ def get_strategies(employee_dataset, top_n=5):
     models = _build_quantile_models(combined_df)
 
     #  Load SHAP values if available
-    import output_integration_be as oib
+    import feature_interpretation_be as fib
     shap_lookup = {}
     for emp_id in combined_df['EmployeeID']:
         try:
-            shap_lookup[emp_id] = oib.get_employee_shap_values(int(emp_id), combined_df)
+            shap_lookup[emp_id] = fib.get_employee_shap_values(int(emp_id), combined_df)
         except Exception:
             pass
 
