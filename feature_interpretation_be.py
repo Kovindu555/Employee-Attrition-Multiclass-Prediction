@@ -34,9 +34,9 @@ def get_jobrole_shap_values(dataset, model=model, group_col='JobRole', num_featu
     try:
         explainer = shap.TreeExplainer(model)
         shap_values_all = explainer.shap_values(X_full)
-        # For binary classifiers, shap_values may be a list [class0, class1]
+        
         if isinstance(shap_values_all, list):
-            shap_matrix = shap_values_all[1]   # class 1 = Attrite
+            shap_matrix = shap_values_all[1]   # class 1 = Attrition happens
         else:
             shap_matrix = shap_values_all
     except Exception:

@@ -769,7 +769,7 @@
             const html = deduped.map(({ feat, mean }) => {
                 const pct   = (Math.abs(mean) / maxAbs * 100).toFixed(1);
                 const color = mean >= 0 ? '#22c55e' : '#ef4444';
-                const label = Math.abs(mean).toFixed(2);
+                const label = Math.abs(mean).toFixed(3);
                 return `<div class="insight-bar-row">
                     <span class="insight-feat-label">${escapeHtml(feat)}</span>
                     <div class="insight-bar-track"><div class="insight-bar-fill" style="width:${pct}%;background:${color};"></div></div>
