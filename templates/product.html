@@ -86,7 +86,9 @@
         <div class="side-panel">
             <div class="info-box" id="insightsBox">
                 <h3>Employee Information</h3>
-                <div class="content" id="insightsContent">Select an employee to view details.</div>
+                <div class="content" id="insightsContent">
+                    <div class="table-message">Select an employee to view details.</div>
+                </div>
             </div>
             <div class="info-box" id="jobInsightsBox">
                 <div class="insights-header">
@@ -117,7 +119,7 @@
                 <p class="strategy-panel-subtitle" id="strategySubtitle">General summary across all employees</p>
             </div>
             <div class="strategy-panel-body" id="strategyPanelBody">
-                <span class="strategies-empty">Load a dataset to view strategic analysis.</span>
+                <div class="strategies-empty">Load a dataset to view strategic analysis.</div>
             </div>
         </div>
 
@@ -205,7 +207,7 @@
             document.getElementById('tableMessage').style.display  = 'none';
             document.getElementById('backBtn').style.display       = 'none';
             document.getElementById('employeeSearch').value        = '';
-            document.getElementById('insightsContent').textContent = 'Select an employee to view details.';
+            document.getElementById('insightsContent').innerHTML   = '<div class="table-message">Select an employee to view details.</div>';
             const titleEl = document.getElementById('cardTitle');
             titleEl.textContent = 'Employee Data';
             titleEl.className   = '';
@@ -353,7 +355,7 @@
                 } else {
                     showTiles(); return;
                 }
-                document.getElementById('insightsContent').textContent = 'Select an employee to view details.';
+                document.getElementById('insightsContent').innerHTML = '<div class="table-message">Select an employee to view details.</div>';
                 if (currentDataset) history.pushState(null, '', `/${currentDataset}/${viewMode === 'full' ? 'view_dataset' : 'Dashboard'}`);
                 return;
             }
@@ -502,7 +504,7 @@
                     document.getElementById('toggleDatasetBtn').style.display    = '';
                     document.getElementById('toggleDatasetBtn').textContent      = 'View Full Dataset';
                     document.getElementById('employeeSearch').value              = '';
-                    document.getElementById('insightsContent').textContent       = 'Select an employee to view details.';
+                    document.getElementById('insightsContent').innerHTML         = '<div class="table-message">Select an employee to view details.</div>';
 
                     loadStrategySummary();
                     fetchGlobalInsights(data.dataset);

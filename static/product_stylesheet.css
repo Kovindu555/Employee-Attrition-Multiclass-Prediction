@@ -92,7 +92,7 @@ body {
 .dashboard-container {
     width: fit-content;
     max-width: 1600px;
-    background: #f0f2f5;
+    background: #f0f2f599;
     margin: 0 auto;
     border-radius: 40px;
     padding: 30px;
@@ -101,6 +101,7 @@ body {
     gap: 20px;
     height: 82vh;
     overflow: hidden;
+    box-shadow: 0 0 20px 10px #f0f2f540;
 }
 
 .main-card, .info-box {
@@ -252,7 +253,7 @@ tr:hover td.id-col,
 tr.selected td.id-col { background-color: #daebed !important; font-weight: 700 !important; }
 
 /* -- Empty / loading states ------------------------------------------------ */
-.table-message { color: #888; text-align: center; padding: 60px 20px; font-size: 15px; }
+/*.table-message { color: #888; text-align: center; padding: 60px 20px; font-size: 15px; }*/
 
 .loading-spinner {
     display: flex;
@@ -402,7 +403,7 @@ tr.selected td.id-col { background-color: #daebed !important; font-weight: 700 !
 
 .strategies-loading { display: flex; align-items: center; gap: 8px; color: #888; font-size: 13px; padding: 8px 0; }
 .mini-spinner { width: 15px; height: 15px; border: 2px solid #dde2e8; border-top-color: #007589; border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
-.strategies-empty { color: #aaa; font-size: 13px; font-style: italic; }
+/*.strategies-empty { color: #aaa; font-size: 13px; font-style: italic; }*/
 .risk-only-note { background: #fff8e6; border: 1px solid #f5d87a; border-radius: 8px; padding: 9px 12px; font-size: 12.5px; color: #7a5200; line-height: 1.5; }
 
 /* -- Global summary tiles -------------------------------------------------- */
@@ -417,3 +418,17 @@ tr.selected td.id-col { background-color: #daebed !important; font-weight: 700 !
 .risk-dist-bar-track { flex: 1; height: 10px; background: #e0e6ea; border-radius: 99px; overflow: hidden; }
 .risk-dist-bar-fill  { height: 100%; border-radius: 99px; }
 .risk-dist-count { font-size: 11px; font-weight: 700; color: #444; width: 28px; text-align: right; flex-shrink: 0; }
+
+.table-message,
+.strategies-empty,
+#jobInsightsContent .table-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+    color: #888;
+    text-align: center;
+    padding: 0; /* Reset padding to allow flex centering */
+    font-size: 15px;
+}

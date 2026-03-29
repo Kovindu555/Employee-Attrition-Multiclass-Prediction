@@ -15,8 +15,23 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # -------------------------------- App Functions --------------------------------
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', page='home')
 
+@app.route('/about')
+def product_page():
+    return render_template('product.html', page='product')
+
+@app.route('/team')
+def team_page():
+    return render_template('team.html', page='team')
+
+@app.route('/signin')
+def signin_page():
+    return render_template('sign_in.html', page='signin')
+
+@app.route('/signup')
+def signup_page():
+    return render_template('sign_up.html', page='signup')
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -38,12 +53,6 @@ def upload_file():
         return jsonify({'dataset': filename, 'columns': columns, 'rows': records})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
-
-@app.route('/about')
-def product_page():
-    return render_template('product.html')
-
 
 @app.route('/<employee_dataset>/Raw', methods=['GET', 'POST'])
 def show_raw(employee_dataset):
