@@ -10,8 +10,8 @@
     <div class="container">
         <div class="left-panel">
             <div class="branding">
-                <img src="./assets/logo.png" alt="Logo" class="logo">
-                <h1>Product Name</h1>
+                <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="product-logo" class="product-logo">
+                <h1>Vital Pulse AI</h1>
             </div>
         </div>
         <div class="right-panel">
@@ -29,7 +29,7 @@
                     </label>
                     <button class="login">Sign-in</button>
                 </form>
-                <p class="sign-up">Don't have an account? <a href="sign_up.html">Sign up</a></p>
+                <p class="sign-up">Don't have an account? <a href="/signup">Sign up</a></p>
             </div>
         </div>
     </div>

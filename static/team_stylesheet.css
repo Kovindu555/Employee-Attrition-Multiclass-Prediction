@@ -157,3 +157,71 @@ body {
 .social-icons img:hover {
     opacity: 0.7;
 }
+
+.navigation-bar {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    padding: 25px 60px;
+}
+
+.product-identity {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.product-identity img {
+    width: 73px;
+    height: 73px;
+}
+
+.product-identity h1 {
+    font-size: 16px;
+    color: var(--primary-font-color);
+    font-weight: normal;
+}
+
+.navigation-panel {
+    display: flex;
+    gap: 35px;
+    justify-content: center;
+    flex: 1;
+}
+
+.navigation-panel a {
+    color: var(--primary-font-color);
+    font-size: 16px;
+    cursor: pointer;
+    font-weight: 350;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.navigation-panel .active {
+    color: var(--secondary-font-color);
+    font-weight: 500;
+}
+
+/* Consistent Button Styling */
+.browse-btn {
+    height: 40px;
+    padding: 0 18px;
+    border: none;
+    border-radius: 500px;
+    color: white;
+    background-color: #007589;
+    cursor: pointer;
+    font-weight: 500;
+    font-family: var(--primary-font);
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    transition: background-color 0.2s;
+}
+
+.browse-btn:hover {
+    background-color: #005f70;
+}
