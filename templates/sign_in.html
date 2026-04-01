@@ -10,14 +10,16 @@
     <div class="container">
         <div class="left-panel">
             <div class="branding">
-                <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="product-logo" class="product-logo">
+                <a href="/" style="text-decoration: none">
+                    <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="product-logo" class="product-logo">
+                </a>
                 <h1>Vital Pulse AI</h1>
             </div>
         </div>
         <div class="right-panel">
             <div class="backdrop">
                 <div class="header">
-                    <img src="../static/assets/back.png" alt="" class="back">
+                    <a href="/"><img src="../static/assets/back.png" alt="" class="back"></a>
                     <h1>Sign-in</h1>
                 </div>
                 <form action="Login" method="post" class="login-form">

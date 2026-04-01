@@ -432,3 +432,30 @@ tr.selected td.id-col { background-color: #daebed !important; font-weight: 700 !
     padding: 0; /* Reset padding to allow flex centering */
     font-size: 15px;
 }
+/* -- Employee Information box header with report button -------------------- */
+.info-box-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-shrink: 0;
+}
+
+.info-box-header h3 { color: #444; }
+
+.report-btn {
+    height: 30px;
+    padding: 0 14px;
+    border: none;
+    border-radius: 8px;
+    background-color: #007589;
+    color: white;
+    font-family: var(--primary-font);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.2s;
+    flex-shrink: 0;
+}
+.report-btn:hover { background-color: #005f70; }

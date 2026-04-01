@@ -18,19 +18,19 @@ def get_jobrole_shap_values(dataset, model=model, group_col='JobRole', num_featu
     Computes mean absolute SHAP values per JobRole group.
 
     Parameters:
-        dataset     : pd.DataFrame — the cleaned dataset (must include JobRole, EmployeeID, Attrition)
+        dataset     : pd.DataFrame - the cleaned dataset (must include JobRole, EmployeeID, Attrition)
         model       : trained sklearn-compatible model
         group_col   : column name to group by (default: 'JobRole')
         num_features: how many top features to return per group
 
     Returns:
-        dict — { group_value: [(feature_name, mean_shap_value), ...] }
+        dict - { group_value: [(feature_name, mean_shap_value), ...] }
     """
     df = dataset.copy()
     feature_cols = [c for c in df.columns if c not in ['EmployeeID', 'Attrition']]
     X_full = df[feature_cols].values
 
-    # Build SHAP explainer — prefer TreeExplainer, fall back to KernelExplainer
+    # Build SHAP explainer - prefer TreeExplainer, fall back to KernelExplainer
     try:
         explainer = shap.TreeExplainer(model)
         shap_values_all = explainer.shap_values(X_full)
@@ -78,14 +78,14 @@ def get_employee_lime_values(employee_id, dataset, model=model,
 
     Parameters:
         employee_id : value to look up in the 'EmployeeID' column
-        dataset     : pd.DataFrame — the cleaned dataset
+        dataset     : pd.DataFrame - the cleaned dataset
         model       : trained sklearn-compatible model
         num_samples : LIME perturbation samples
         num_features: top features to return
         random_state: reproducibility seed
 
     Returns:
-        list of (feature_description, weight) tuples — sorted by |weight| descending
+        list of (feature_description, weight) tuples - sorted by |weight| descending
     """
     df = dataset.copy()
 

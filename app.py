@@ -1,5 +1,4 @@
-from flask import Flask, render_template, Response, jsonify, request
-import numpy as np
+from flask import Flask, render_template, jsonify, request
 import pandas as pd
 import risk_profiling_be as rpb
 import os
@@ -15,23 +14,19 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # -------------------------------- App Functions --------------------------------
 @app.route('/')
 def index():
-    return render_template('index.html', page='home')
-
-@app.route('/about')
-def product_page():
-    return render_template('product.html', page='product')
+    return render_template('index.html')
 
 @app.route('/team')
 def team_page():
-    return render_template('team.html', page='team')
-
-@app.route('/signin')
-def signin_page():
-    return render_template('sign_in.html', page='signin')
+    return render_template('team.html')
 
 @app.route('/signup')
-def signup_page():
-    return render_template('sign_up.html', page='signup')
+def sighup_page():
+    return render_template('sign_up.html')
+
+@app.route('/signin')
+def sighin_page():
+    return render_template('sign_in.html')
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -53,6 +48,16 @@ def upload_file():
         return jsonify({'dataset': filename, 'columns': columns, 'rows': records})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/dashboard')
+def product_page():
+    return render_template('product.html')
+
+
+@app.route('/report')
+def employee_report():
+    return render_template('employee_report.html')
 
 @app.route('/<employee_dataset>/Raw', methods=['GET', 'POST'])
 def show_raw(employee_dataset):

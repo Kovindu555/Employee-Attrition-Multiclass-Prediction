@@ -10,12 +10,14 @@
     <div class="container">
         <nav class="navigation-bar">
             <div class="product-identity">
-                <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="product-logo" class="product-logo">
+                <a href="/" style="text-decoration: none">
+                    <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="product-logo" class="product-logo">
+                </a>
                 <h1 class="product-name">Vital Pulse AI</h1>
             </div>
             <div class="navigation-panel">
                 <a href="/" class="home">Home</a>
-                <a href="/about" class="product active">Product</a>
+                <a href="/dashboard" class="product active">Dashboard</a>
                 <a href="/team" class="team">Our Team</a>
             </div>
             <div class="file-input-group">
@@ -85,7 +87,12 @@
         <!-- Column 2: Employee info + Job Role Insights -->
         <div class="side-panel">
             <div class="info-box" id="insightsBox">
-                <h3>Employee Information</h3>
+                <div class="info-box-header">
+                    <h3>Employee Information</h3>
+                    <button id="generateReportBtn" class="report-btn" onclick="generateReport()" style="display:none;">
+                        Generate Report
+                    </button>
+                </div>
                 <div class="content" id="insightsContent">
                     <div class="table-message">Select an employee to view details.</div>
                 </div>
@@ -202,6 +209,7 @@
         function showTiles() {
             selectedRisk = null;
             lastSelectedId = null;
+            lastSelectedRow = null;
             document.getElementById('tilesWrapper').style.display  = '';
             document.getElementById('tableWrapper').style.display  = 'none';
             document.getElementById('tableMessage').style.display  = 'none';
@@ -211,6 +219,7 @@
             const titleEl = document.getElementById('cardTitle');
             titleEl.textContent = 'Employee Data';
             titleEl.className   = '';
+            _updateReportBtn(false);
             if (currentDataset) history.pushState(null, '', `/${currentDataset}/Dashboard`);
             loadStrategySummary();
         }
@@ -306,9 +315,11 @@
             if (idCol && currentDataset) {
                 const empId = String(row[idCol] ?? '').trim();
                 if (empId) {
-                    lastSelectedId = empId;
+                    lastSelectedId  = empId;
+                    lastSelectedRow = conciseRows.find(r => String(r[idCol] ?? '').trim() === empId) || row;
                     history.pushState(null, '', `/${currentDataset}/select_employee_id=${empId}`);
                     loadStrategies(empId);
+                    _updateReportBtn(true);
                 }
             }
         }
@@ -380,9 +391,12 @@
                 if (matchTr) { matchTr.classList.add('selected'); matchTr.scrollIntoView({ block: 'nearest' }); }
                 showInsightsFromRow(match, searchCols);
                 if (currentDataset) {
-                    lastSelectedId = query;
+                    lastSelectedId  = query;
+                    const idCol2 = searchCols.find(c => c.toLowerCase() === 'employeeid' || c.toLowerCase() === 'id');
+                    lastSelectedRow = idCol2 ? (conciseRows.find(r => String(r[idCol2] ?? '').trim() === query) || match) : match;
                     history.pushState(null, '', `/${currentDataset}/select_employee_id=${query}`);
                     loadStrategies(query);
+                    _updateReportBtn(true);
                 }
             } else {
                 const idCol   = searchCols.find(c => c.toLowerCase() === 'employeeid' || c.toLowerCase() === 'id');
@@ -778,6 +792,82 @@
             }).join('');
 
             document.getElementById('jobInsightsContent').innerHTML = html || '<p class="table-message">No data.</p>';
+        }
+        // ── Track the full row object of the last selected employee ──────────
+        let lastSelectedRow = null;
+
+        // ── Show / hide report button alongside insights ──────────────────────
+        function _updateReportBtn(show) {
+            const btn = document.getElementById('generateReportBtn');
+            if (btn) btn.style.display = show ? '' : 'none';
+        }
+
+        // ── Generate report — pack data into sessionStorage, open new tab ─────
+        function generateReport() {
+            if (!lastSelectedId || !lastSelectedRow) return;
+
+            const profileRow     = lastSelectedRow;
+            const profileColumns = conciseColumns.length ? conciseColumns : allColumns;
+
+            // Attrition probability
+            const probCol       = profileColumns.find(c => c.toLowerCase() === 'attrition_probability');
+            const attritionProb = probCol ? String(profileRow[probCol] ?? '0') : '0';
+
+            // Risk level
+            const riskCol   = profileColumns.find(c => c === RISK_COL || c.toLowerCase() === 'predicted_risk');
+            const riskLevel = riskCol ? String(profileRow[riskCol] ?? '') : '';
+
+            // Job role string
+            const jobRoleMap = { 0: 'Other', 1: 'Nurse', 2: 'Therapist', 3: 'Administrative', 4: 'Admin' };
+            const jobRoleCol = profileColumns.find(c => c.toLowerCase() === 'jobrole');
+            let jobRole = '';
+            if (jobRoleCol) {
+                const raw = profileRow[jobRoleCol];
+                jobRole = isNaN(parseInt(raw)) ? String(raw) : (jobRoleMap[parseInt(raw)] || String(raw));
+            }
+
+            // Extra fields from fullRows (combined dataset)
+            // These exist in combined_df_table.json but not in the concise 6-col view
+            const EXTRA_FIELD_NAMES = [
+                'BusinessTravel', 'Gender', 'OverTime',
+                'HourlyRate', 'DistanceFromHome', 'MonthlyRate'
+            ];
+            let extraFields = {};
+            if (fullRows.length && lastSelectedId) {
+                const idCol = fullColumns.find(c => c.toLowerCase() === 'employeeid' || c.toLowerCase() === 'id');
+                if (idCol) {
+                    const fullRow = fullRows.find(r => String(r[idCol] ?? '').trim() === lastSelectedId);
+                    if (fullRow) {
+                        EXTRA_FIELD_NAMES.forEach(f => {
+                            if (fullRow[f] !== undefined && fullRow[f] !== null) extraFields[f] = fullRow[f];
+                        });
+                    }
+                }
+            }
+
+            // SHAP features for this job role
+            let shapFeatures = [];
+            if (window._insightsData && jobRole && window._insightsData[jobRole]) {
+                shapFeatures = window._insightsData[jobRole].map(([feat, mean]) => ({ feat, mean }));
+            }
+
+            // Strategies from cache
+            const strategies = strategyCache[lastSelectedId] || null;
+
+            const reportData = {
+                employeeId: lastSelectedId,
+                profileColumns,
+                profileRow,
+                extraFields,
+                attritionProb,
+                riskLevel,
+                jobRole,
+                shapFeatures,
+                strategies,
+            };
+
+            sessionStorage.setItem('reportData', JSON.stringify(reportData));
+            window.open('/report', '_blank');
         }
     </script>
 </body>

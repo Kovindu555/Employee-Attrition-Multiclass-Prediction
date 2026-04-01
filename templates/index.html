@@ -10,20 +10,22 @@
     <div class="container">
         <nav class="navigation-bar">
             <div class="product-identity">
-                <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="product-logo" class="product-logo">
+                <a href="/" style="text-decoration: none">
+                    <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="product-logo" class="product-logo">
+                </a>
                 <h1 class="product-name">Vital Pulse AI</h1>
             </div>
             <div class="navigation-panel">
-                <a href="/" class="home active">Home</a> <a href="/about" class="product">Product</a>
+                <a href="/" class="home active">Home</a> <a href="/dashboard" class="product">Dashboard</a>
                 <a href="/team" class="team">Our Team</a>
             </div>
-            <button class="browse-btn" onclick="window.location.href='/signin'">Get Started</button>
+            <button class="browse-btn" onclick="window.location.href='/signin'">SIGN IN</button>
         </nav>
         <div class="content">
             <div class="backdrop">
                 <p>Welcome!</p>
-                <h1>Predict the Risk, <br>Shape the outcome.</h1>
-                <button class="product" onclick="window.location.href='/about'">Try our product</button>
+                <h1 style="text-shadow: 0px 0px 10px #006e81, 0px 0px 20px #006e81; color: white; font-size: 50px">Predict the Risk, <br>Shape the outcome.</h1>
+                <button class="product" onclick="window.location.href='/dashboard'">Get Started</button>
             </div>
         </div>
     </div>

@@ -102,7 +102,7 @@ p.home {
 .backdrop {
     width: 50.98%;
     height: 60%;
-    background-color: #167589;
+    background-color: #f0f2f599;
     opacity: 100%;
     border-radius: 5rem;
     display: flex;
@@ -112,6 +112,7 @@ p.home {
     color: white;
     text-align: center;
     margin-bottom: 150px;
+    box-shadow: 0 0 20px 10px #f0f2f540;
 
     p {
         font-size: 1rem;
@@ -133,10 +134,13 @@ p.home {
         color: white;
         margin-top: 20px;
         background-color: #006e81;
-        border: 1px solid #43e3ff;
+        border: 2px solid #eeeeee;
         cursor: pointer;
-        transition: background-color 0.3s ease;
+        transition: background-color  0.3s ease, transform 0.3s ease, box-shadow 0.3s ease, border 0.1s ease;
         &:hover {
+            border: 3px solid #eeeeee;
+            box-shadow: 0 0 20px 0 #003a43;
+            transform: scale(1.1);
             background-color: #0088a0;
         }
     }

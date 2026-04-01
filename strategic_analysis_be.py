@@ -429,7 +429,7 @@ def _get_strategies_for_employee(emp_row, models, top_n=5, shap_row=None):
                 stype = "LowRisk-Numeric" if shap_row else "Numeric"
 
         else:
-            # Categorical — same map for all risk levels
+            # Categorical - same map for all risk levels
             strategies = CATEGORICAL_STRATEGY_MAP.get(feature, {}).get(str(actual_value), [])
             level = "N/A"
             if shap_row:
