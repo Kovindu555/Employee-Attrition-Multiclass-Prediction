@@ -147,6 +147,16 @@ body {
     overflow: hidden;
 }
 
+.member-image-box img {
+    position: relative;
+    z-index: 2;
+    width: calc(100% - 4px);
+    height: calc(100% - 4px);
+    margin: 2px;
+    object-fit: cover;
+    border-radius: inherit;
+}
+
 .member-image-box::before {
     content: "";
     position: absolute;
@@ -169,6 +179,7 @@ body {
     inset: 3px;
     border-radius: inherit;
     background: #D9D9D9;
+    z-index: 1
 }
 
 .member-name {
