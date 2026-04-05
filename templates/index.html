@@ -16,10 +16,14 @@
                 <h1 class="product-name">Vital Pulse AI</h1>
             </div>
             <div class="navigation-panel">
-                <a href="/" class="home active">Home</a> <a href="/dashboard" class="product">Dashboard</a>
-                <a href="/team" class="team">Our Team</a>
+                <a href="/" class="home active">Home</a> <a href="{{ url_for('product_page') }}" class="product">Dashboard</a>
+                <a href="{{ url_for('team_page') }}" class="team">Our Team</a>
             </div>
-            <button class="browse-btn" onclick="window.location.href='/signin'">SIGN IN</button>
+            {% if logged_in %}
+                <button class="browse-btn" onclick="window.location.href='/logout'">Logout</button>
+            {% else %}
+                <button class="browse-btn" onclick="window.location.href='/signup'">SIGN IN</button>
+            {% endif %}
         </nav>
         <div class="content">
             <div class="backdrop">
@@ -36,7 +40,6 @@
                 .then(response => response.json())
                 .then(data => {
                     console.log(data);
-                    // You can also update the UI with the received data if needed
                 })
                 .catch(error => console.error('Error fetching product data:', error));
         });

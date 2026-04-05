@@ -4,36 +4,66 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign-in Page</title>
-    <link rel="stylesheet" href="../static/sign_in_stylesheet.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='sign_in_stylesheet.css') }}">
 </head>
 <body>
     <div class="container">
         <div class="left-panel">
             <div class="branding">
-                <a href="/" style="text-decoration: none">
-                    <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="product-logo" class="product-logo">
-                </a>
-                <h1>Vital Pulse AI</h1>
+                <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="Logo" class="logo">
+                <h1>Product Name</h1>
             </div>
         </div>
         <div class="right-panel">
             <div class="backdrop">
                 <div class="header">
-                    <a href="/"><img src="../static/assets/back.png" alt="" class="back"></a>
+                    <a href="{{ url_for('index') }}">
+                        <img src="{{ url_for('static', filename='assets/back.png') }}" alt="" class="back" style="cursor: pointer;">
+                    </a>
                     <h1>Sign-in</h1>
                 </div>
-                <form action="Login" method="post" class="login-form">
-                    <input type="text" placeholder="Enter your email address" class="input-field">
-                    <input type="password" placeholder="Password" class="input-field">
-                    <label>
-                        <input type="checkbox" id="remember-me" class="checkbox">
-                        Remember me
-                    </label>
-                    <button class="login">Sign-in</button>
+
+                <!-- Flash messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="flash flash-{{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <form action="{{ url_for('auth.login') }}" method="post" class="login-form">
+                    <input
+                        type="email"
+                        name="email"
+                        placeholder="Enter your email address"
+                        class="input-field"
+                        required
+                        value="{{ request.form.get('email', '') }}"
+                    >
+                    <input
+                        type="password"
+                        name="password"
+                        placeholder="Password"
+                        class="input-field"
+                        required
+                    >
+                    <button type="submit" class="login">Sign-in</button>
                 </form>
-                <p class="sign-up">Don't have an account? <a href="/signup">Sign up</a></p>
+                <p class="sign-up">Don&apos;t have an account? <a href="{{ url_for('auth.signup') }}">Sign up</a></p>
             </div>
         </div>
     </div>
+
+    <style>
+        .flash {
+            padding: 10px 14px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+        }
+        .flash-error   { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+        .flash-success { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+    </style>
 </body>
 </html>

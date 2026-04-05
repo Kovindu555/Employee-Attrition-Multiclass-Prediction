@@ -1,4 +1,5 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, Response, jsonify, request, session, redirect, url_for
+from functools import wraps
 import pandas as pd
 import risk_profiling_be as rpb
 import os
@@ -8,27 +9,40 @@ import strategic_analysis_be as sab
 
 app = Flask(__name__)
 
+app.secret_key = 'b2d7679f8dade4d7ad6580efc9bac2cec4c65e8c836c1cc1eb4fe72342ede56b'
+
 UPLOAD_FOLDER = 'test_csv'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# Register Auth Blueprint
+from auth import auth as auth_blueprint
+app.register_blueprint(auth_blueprint)
+
+# Initialize the database on startup
+from database import init_db
+with app.app_context():
+    init_db()
+
+# Login required decorator
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_email' not in session:
+            return redirect(url_for('auth.login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 # -------------------------------- App Functions --------------------------------
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', logged_in='user_email' in session)
 
 @app.route('/team')
 def team_page():
     return render_template('team.html')
 
-@app.route('/signup')
-def sighup_page():
-    return render_template('sign_up.html')
-
-@app.route('/signin')
-def sighin_page():
-    return render_template('sign_in.html')
-
 @app.route('/upload', methods=['POST'])
+@login_required  
 def upload_file():
     if 'file' not in request.files:
         return jsonify({'error': 'No file provided'}), 400
@@ -51,15 +65,18 @@ def upload_file():
 
 
 @app.route('/dashboard')
+@login_required  
 def product_page():
     return render_template('product.html')
 
 
 @app.route('/report')
+@login_required  
 def employee_report():
     return render_template('employee_report.html')
 
 @app.route('/<employee_dataset>/Raw', methods=['GET', 'POST'])
+@login_required  
 def show_raw(employee_dataset):
     raw_dataset_directory = os.path.join(os.path.dirname(__file__), 'test_csv', employee_dataset + '.csv')
     raw_dataset = pd.read_csv(raw_dataset_directory)
@@ -67,6 +84,7 @@ def show_raw(employee_dataset):
 
 
 @app.route('/<path:employee_dataset>/Dashboard', methods=['GET'])
+@login_required  
 def show_dashboard(employee_dataset):
     if 'application/json' in request.headers.get('Accept', ''):
         dataset_name = employee_dataset[:-4] if employee_dataset.endswith('.csv') else employee_dataset
@@ -81,6 +99,7 @@ def show_dashboard(employee_dataset):
 
 
 @app.route('/<path:employee_dataset>/global_insights', methods=['GET'])
+@login_required  
 def get_global_insights(employee_dataset):
     import pickle
     dataset_name = employee_dataset[:-4] if employee_dataset.endswith('.csv') else employee_dataset
@@ -97,6 +116,7 @@ def get_global_insights(employee_dataset):
 
 
 @app.route('/<path:employee_dataset>/view_dataset', methods=['GET'])
+@login_required  
 def show_view_dataset(employee_dataset):
     try:
         df = pd.read_json(os.path.join(os.path.dirname(__file__), 'jsons', 'combined_df_table.json'))
@@ -108,6 +128,7 @@ def show_view_dataset(employee_dataset):
 
 
 @app.route('/<path:employee_dataset>/select_employee_id=<search_id>', methods=['GET'])
+@login_required  
 def show_search_employee_id(employee_dataset, search_id):
     if 'application/json' not in request.headers.get('Accept', ''):
         return render_template('product.html')
@@ -121,6 +142,7 @@ def show_search_employee_id(employee_dataset, search_id):
 
 # ── Strategy: single employee ─────────────────────────────────────────────────
 @app.route('/<path:employee_dataset>/strategy/employee=<employee_id>', methods=['GET'])
+@login_required  
 def get_employee_strategy(employee_dataset, employee_id):
     try:
         result = sab.get_employee_strategy(employee_dataset, employee_id)
@@ -133,6 +155,7 @@ def get_employee_strategy(employee_dataset, employee_id):
 
 # ── Strategy: summary across all employees ────────────────────────────────────
 @app.route('/<path:employee_dataset>/strategy/summary', methods=['GET'])
+@login_required  
 def get_strategy_summary(employee_dataset):
     try:
         summary = sab.get_strategy_summary(employee_dataset)
