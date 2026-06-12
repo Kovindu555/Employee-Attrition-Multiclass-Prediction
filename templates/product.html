@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Risk Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='product_stylesheet.css') }}">
+</head>
+<body>
+    <div class="container">
+        <nav class="navigation-bar">
+            <div class="product-identity">
+                <a href="/" style="text-decoration: none">
+                    <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="product-logo" class="product-logo">
+                </a>
+                <h1 class="product-name">Vital Pulse AI</h1>
+            </div>
+            <div class="navigation-panel">
+                <a href="/" class="home">Home</a>
+                <a href="/dashboard" class="product active">Dashboard</a>
+                <a href="/team" class="team">Our Team</a>
+            </div>
+            <div class="file-input-group">
+                <span id="datasetLabel" class="dataset-label">No file selected</span>
+                <label for="fileUpload" class="browse-btn">Browse Files</label>
+                <input type="file" id="fileUpload" accept=".csv" style="display:none;" onchange="handleFileSelect(this)">
+            </div>
+        </nav>
+    </div>
+
+    <main class="dashboard-container">
+
+        <!-- Column 1: Employee table / tiles -->
+        <div class="main-card">
+            <div class="card-header">
+                <div class="card-title-group">
+                    <button id="backBtn" class="back-btn" onclick="showTiles()" style="display:none;">&#8592;</button>
+                    <h2 id="cardTitle">Employee Data</h2>
+                </div>
+                <div class="card-header-actions">
+                    <input type="text" id="employeeSearch" placeholder="Search by employee ID..." oninput="handleSearchInput()">
+                    <button id="toggleDatasetBtn" class="action-btn" onclick="toggleDatasetView()" style="display:none;">
+                        View Full Dataset
+                    </button>
+                </div>
+            </div>
+
+            <div id="tableMessage" class="table-message">Browse a CSV file to view employee risk data.</div>
+            <div id="loadingSpinner" class="loading-spinner" style="display:none;">
+                <div class="spinner"></div>
+                <span>Processing dataset...</span>
+            </div>
+
+            <div id="tilesWrapper" style="display:none;">
+                <div class="risk-tiles">
+                    <div class="risk-tile tile-critical" onclick="selectTile('Critical Risk')">
+                        <div class="tile-label">Critical Risk</div>
+                        <div class="tile-count" id="count-critical">—</div>
+                        <div class="tile-sub">employees</div>
+                    </div>
+                    <div class="risk-tile tile-high" onclick="selectTile('High Risk')">
+                        <div class="tile-label">High Risk</div>
+                        <div class="tile-count" id="count-high">—</div>
+                        <div class="tile-sub">employees</div>
+                    </div>
+                    <div class="risk-tile tile-medium" onclick="selectTile('Medium Risk')">
+                        <div class="tile-label">Medium Risk</div>
+                        <div class="tile-count" id="count-medium">—</div>
+                        <div class="tile-sub">employees</div>
+                    </div>
+                    <div class="risk-tile tile-low" onclick="selectTile('Low Risk')">
+                        <div class="tile-label">Low Risk</div>
+                        <div class="tile-count" id="count-low">—</div>
+                        <div class="tile-sub">employees</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-container" id="tableWrapper" style="display:none;">
+                <table>
+                    <thead><tr id="tableHeaderRow"></tr></thead>
+                    <tbody id="employeeTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Column 2: Employee info + Job Role Insights -->
+        <div class="side-panel">
+            <div class="info-box" id="insightsBox">
+                <div class="info-box-header">
+                    <h3>Employee Information</h3>
+                    <button id="generateReportBtn" class="report-btn" onclick="generateReport()" style="display:none;">
+                        Generate Report
+                    </button>
+                </div>
+                <div class="content" id="insightsContent">
+                    <div class="table-message">Select an employee to view details.</div>
+                </div>
+            </div>
+            <div class="info-box" id="jobInsightsBox">
+                <div class="insights-header">
+                    <div>
+                        <h3>Job Role Based Insights</h3>
+                        <p class="insights-subtitle">Impact of features on predictive risk across all departments</p>
+                    </div>
+                    <div class="insights-header-controls">
+                        <select id="jobRoleSelect" class="jobrole-select" onchange="renderInsightsBars(window._insightsData)" style="display:none;">
+                            <option value="__all__">All Roles</option>
+                        </select>
+                        <div class="insights-legend">
+                            <span class="legend-item legend-positive">Positive Impact</span>
+                            <span class="legend-item legend-negative">Negative Impact</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="content" id="jobInsightsContent">
+                    <p class="table-message">Load a dataset to view feature insights.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Column 3: Strategic Analysis -->
+        <div class="strategy-panel">
+            <div class="strategy-panel-header">
+                <h3>Strategic Analysis</h3>
+                <p class="strategy-panel-subtitle" id="strategySubtitle">General summary across all employees</p>
+            </div>
+            <div class="strategy-panel-body" id="strategyPanelBody">
+                <div class="strategies-empty">Load a dataset to view strategic analysis.</div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // ── State ─────────────────────────────────────────────────────────────
+        let conciseColumns  = [];
+        let conciseRows     = [];
+        let fullColumns     = [];
+        let fullRows        = [];
+        let allColumns      = [];
+        let allRows         = [];
+        let employeeIndex   = {};
+        let currentDataset  = null;
+        let viewMode        = 'dashboard';  // 'dashboard' | 'full'
+        let selectedRisk    = null;         // null = tiles, else risk label
+        let lastSelectedId  = null;
+        const strategyCache = {};
+        const RISK_COL      = 'Predicted_Risk';
+
+        // ── Sort by Attrition_Probability descending ──────────────────────────
+        function sortByRisk(columns, rows) {
+            const probCol = columns.find(c => c.toLowerCase() === 'attrition_probability');
+            if (!probCol) return rows;
+            return [...rows].sort((a, b) => {
+                const pa = parseFloat(String(a[probCol] || '0').replace('%', ''));
+                const pb = parseFloat(String(b[probCol] || '0').replace('%', ''));
+                return pb - pa;
+            });
+        }
+
+        // ── Strip Predicted_Risk column for tile-filtered views ───────────────
+        function stripRiskCol(columns) {
+            return columns.filter(c =>
+                c !== RISK_COL && !c.toLowerCase().includes('predicted_risk')
+            );
+        }
+
+        // ── Build O(1) employee index ─────────────────────────────────────────
+        function buildIndex(columns, rows) {
+            const idCol = columns.find(c =>
+                c.toLowerCase() === 'employeeid' || c.toLowerCase() === 'id'
+            );
+            employeeIndex = {};
+            if (!idCol) return;
+            rows.forEach(row => {
+                const key = String(row[idCol] ?? '').trim();
+                if (key) employeeIndex[key] = row;
+            });
+        }
+
+        // ── Update tile counts ────────────────────────────────────────────────
+        function updateTileCounts(rows) {
+            const riskCol = conciseColumns.find(c => c === RISK_COL);
+            const counts  = { 'Critical Risk': 0, 'High Risk': 0, 'Medium Risk': 0, 'Low Risk': 0 };
+            if (riskCol) rows.forEach(r => {
+                const val = String(r[riskCol] ?? '').trim();
+                if (counts[val] !== undefined) counts[val]++;
+            });
+            document.getElementById('count-critical').textContent = counts['Critical Risk'];
+            document.getElementById('count-high').textContent     = counts['High Risk'];
+            document.getElementById('count-medium').textContent   = counts['Medium Risk'];
+            document.getElementById('count-low').textContent      = counts['Low Risk'];
+        }
+
+        // ── Risk badge ────────────────────────────────────────────────────────
+        function riskBadge(value) {
+            const map = {
+                'low risk':      'badge badge-low',
+                'medium risk':   'badge badge-medium',
+                'high risk':     'badge badge-high',
+                'critical risk': 'badge badge-critical',
+            };
+            const cls = map[(value || '').toLowerCase()] || 'badge';
+            return `<span class="${cls}">${value}</span>`;
+        }
+
+        // ── Show tile grid ────────────────────────────────────────────────────
+        function showTiles() {
+            selectedRisk = null;
+            lastSelectedId = null;
+            lastSelectedRow = null;
+            document.getElementById('tilesWrapper').style.display  = '';
+            document.getElementById('tableWrapper').style.display  = 'none';
+            document.getElementById('tableMessage').style.display  = 'none';
+            document.getElementById('backBtn').style.display       = 'none';
+            document.getElementById('employeeSearch').value        = '';
+            document.getElementById('insightsContent').innerHTML   = '<div class="table-message">Select an employee to view details.</div>';
+            const titleEl = document.getElementById('cardTitle');
+            titleEl.textContent = 'Employee Data';
+            titleEl.className   = '';
+            _updateReportBtn(false);
+            if (currentDataset) history.pushState(null, '', `/${currentDataset}/Dashboard`);
+            loadStrategySummary();
+        }
+
+        // ── Tile click → filtered table ───────────────────────────────────────
+        function selectTile(riskLevel) {
+            selectedRisk = riskLevel;
+            const riskCol  = conciseColumns.find(c => c === RISK_COL);
+            const filtered = riskCol
+                ? conciseRows.filter(r => String(r[riskCol] ?? '').trim() === riskLevel)
+                : conciseRows;
+
+            document.getElementById('tilesWrapper').style.display = 'none';
+            document.getElementById('backBtn').style.display      = '';
+
+            const titleClassMap = {
+                'Critical Risk': 'risk-title title-critical',
+                'High Risk':     'risk-title title-high',
+                'Medium Risk':   'risk-title title-medium',
+                'Low Risk':      'risk-title title-low',
+            };
+            const titleEl    = document.getElementById('cardTitle');
+            titleEl.textContent = riskLevel;
+            titleEl.className   = titleClassMap[riskLevel] || 'risk-title';
+
+            renderTableFromRows(stripRiskCol(conciseColumns), filtered, conciseRows, false);
+        }
+
+        // ── Core table renderer ───────────────────────────────────────────────
+        function renderTableFromRows(columns, rows, sourceRows, pinFirst) {
+            allColumns = columns;
+            allRows    = sourceRows;
+
+            const idCol = columns.find(c =>
+                c.toLowerCase() === 'employeeid' || c.toLowerCase() === 'id'
+            );
+            document.getElementById('tableHeaderRow').innerHTML =
+                columns.map((col, i) => {
+                    const classes = [];
+                    if (i === 0 && pinFirst) classes.push('sticky-col');
+                    if (col === idCol)        classes.push('id-col');
+                    const cls = classes.length ? ` class="${classes.join(' ')}"` : '';
+                    return `<th${cls}>${col}</th>`;
+                }).join('');
+
+            populateRows(rows, pinFirst);
+            document.getElementById('tableMessage').style.display = 'none';
+            document.getElementById('tableWrapper').style.display = '';
+        }
+
+        // ── Wrapper used by toggleDatasetView ─────────────────────────────────
+        function renderTable(columns, rows) {
+            const pinFirst = viewMode === 'full';
+            renderTableFromRows(columns, rows, rows, pinFirst);
+        }
+
+        // ── Populate tbody — allRows.indexOf for correct filtered indices ──────
+        function populateRows(rows, pinFirst) {
+            const idCol = allColumns.find(c =>
+                c.toLowerCase() === 'employeeid' || c.toLowerCase() === 'id'
+            );
+            document.getElementById('employeeTableBody').innerHTML = rows.map((row) => {
+                const allRowsIdx = allRows.indexOf(row);
+                const cells = allColumns.map((col, i) => {
+                    const raw   = row[col] ?? '';
+                    const cell  = (viewMode === 'full' && col.toLowerCase().includes('risk'))
+                        ? riskBadge(raw)
+                        : escapeHtml(String(raw));
+                    const classes = [];
+                    if (i === 0 && pinFirst) classes.push('sticky-col');
+                    if (col === idCol)        classes.push('id-col');
+                    const cls = classes.length ? ` class="${classes.join(' ')}"` : '';
+                    return `<td${cls}>${cell}</td>`;
+                }).join('');
+                return `<tr data-idx="${allRowsIdx}" onclick="selectRow(${allRowsIdx})">${cells}</tr>`;
+            }).join('');
+        }
+
+        // ── Row click ─────────────────────────────────────────────────────────
+        function selectRow(idx) {
+            const row = allRows[idx];
+            if (!row) return;
+
+            document.querySelectorAll('#employeeTableBody tr').forEach(tr =>
+                tr.classList.toggle('selected', parseInt(tr.dataset.idx) === idx)
+            );
+
+            showInsightsFromRow(row, allColumns);
+
+            const idCol = allColumns.find(c =>
+                c.toLowerCase() === 'employeeid' || c.toLowerCase() === 'id'
+            );
+            if (idCol && currentDataset) {
+                const empId = String(row[idCol] ?? '').trim();
+                if (empId) {
+                    lastSelectedId  = empId;
+                    lastSelectedRow = conciseRows.find(r => String(r[idCol] ?? '').trim() === empId) || row;
+                    history.pushState(null, '', `/${currentDataset}/select_employee_id=${empId}`);
+                    loadStrategies(empId);
+                    _updateReportBtn(true);
+                }
+            }
+        }
+
+        // ── Show employee info with probability bar ───────────────────────────
+        function showInsightsFromRow(row, columns) {
+            const cols    = columns || allColumns;
+            const probCol = cols.find(c => c.toLowerCase() === 'attrition_probability');
+            let probHtml  = '';
+            if (probCol && row[probCol] !== undefined) {
+                const prob    = parseFloat(String(row[probCol] || '0').replace('%', ''));
+                const display = isNaN(prob) ? '—' : prob.toFixed(1) + '%';
+                const barCls  = prob >= 75 ? 'critical' : prob >= 50 ? 'high' : prob >= 25 ? 'medium' : 'low';
+                probHtml = `
+                    <div class="prob-bar-wrap">
+                        <div class="prob-bar-label">
+                            <span>Attrition Probability</span><span>${display}</span>
+                        </div>
+                        <div class="prob-bar-track">
+                            <div class="prob-bar-fill ${barCls}" style="width:${Math.min(prob,100)}%"></div>
+                        </div>
+                    </div>`;
+            }
+            const details = cols
+                .filter(col => col.toLowerCase() !== 'attrition_probability')
+                .map(col =>
+                    `<div class="detail-row">
+                        <span class="detail-label">${escapeHtml(col)}</span>
+                        <span class="detail-value">${escapeHtml(String(row[col] ?? '—'))}</span>
+                     </div>`
+                ).join('');
+            document.getElementById('insightsContent').innerHTML = probHtml + details;
+        }
+
+        // ── Search ────────────────────────────────────────────────────────────
+        function handleSearchInput() {
+            const query = document.getElementById('employeeSearch').value.trim();
+
+            if (!query) {
+                if (viewMode === 'full') {
+                    populateRows(fullRows, true);
+                } else if (selectedRisk) {
+                    selectTile(selectedRisk); return;
+                } else {
+                    showTiles(); return;
+                }
+                document.getElementById('insightsContent').innerHTML = '<div class="table-message">Select an employee to view details.</div>';
+                if (currentDataset) history.pushState(null, '', `/${currentDataset}/${viewMode === 'full' ? 'view_dataset' : 'Dashboard'}`);
+                return;
+            }
+
+            const searchPool = viewMode === 'full' ? fullRows : conciseRows;
+            const searchCols = viewMode === 'full' ? fullColumns : stripRiskCol(conciseColumns);
+
+            const match = employeeIndex[query];
+            if (match) {
+                if (viewMode === 'dashboard') {
+                    document.getElementById('tilesWrapper').style.display = 'none';
+                    document.getElementById('backBtn').style.display      = '';
+                    const titleEl = document.getElementById('cardTitle');
+                    titleEl.textContent = 'Search Results';
+                    titleEl.className   = '';
+                    renderTableFromRows(searchCols, conciseRows, conciseRows, false);
+                }
+                const matchIdx = allRows.indexOf(match);
+                const trs = document.querySelectorAll('#employeeTableBody tr');
+                trs.forEach(tr => tr.classList.remove('selected'));
+                const matchTr = Array.from(trs).find(tr => parseInt(tr.dataset.idx) === matchIdx);
+                if (matchTr) { matchTr.classList.add('selected'); matchTr.scrollIntoView({ block: 'nearest' }); }
+                showInsightsFromRow(match, searchCols);
+                if (currentDataset) {
+                    lastSelectedId  = query;
+                    const idCol2 = searchCols.find(c => c.toLowerCase() === 'employeeid' || c.toLowerCase() === 'id');
+                    lastSelectedRow = idCol2 ? (conciseRows.find(r => String(r[idCol2] ?? '').trim() === query) || match) : match;
+                    history.pushState(null, '', `/${currentDataset}/select_employee_id=${query}`);
+                    loadStrategies(query);
+                    _updateReportBtn(true);
+                }
+            } else {
+                const idCol   = searchCols.find(c => c.toLowerCase() === 'employeeid' || c.toLowerCase() === 'id');
+                const partial = idCol ? searchPool.filter(r => String(r[idCol] ?? '').startsWith(query)) : [];
+                if (viewMode === 'dashboard') {
+                    document.getElementById('tilesWrapper').style.display = 'none';
+                    document.getElementById('backBtn').style.display      = '';
+                    const titleEl = document.getElementById('cardTitle');
+                    titleEl.textContent = 'Search Results';
+                    titleEl.className   = '';
+                    renderTableFromRows(searchCols, partial.length ? partial : searchPool, conciseRows, false);
+                } else {
+                    populateRows(partial.length ? partial : fullRows, true);
+                }
+            }
+        }
+
+        // ── Sync insights + highlight after view toggle ───────────────────────
+        function syncInsightsToView(columns, rows) {
+            if (!lastSelectedId) return;
+            const idCol = columns.find(c => c.toLowerCase() === 'employeeid' || c.toLowerCase() === 'id');
+            if (!idCol) return;
+            const matchIdx = rows.findIndex(r => String(r[idCol] ?? '').trim() === lastSelectedId);
+            if (matchIdx === -1) return;
+
+            const trs = document.querySelectorAll('#employeeTableBody tr');
+            trs.forEach(tr => tr.classList.remove('selected'));
+            const matchTr = Array.from(trs).find(tr => parseInt(tr.dataset.idx) === matchIdx);
+            if (matchTr) { matchTr.classList.add('selected'); matchTr.scrollIntoView({ block: 'nearest' }); }
+
+            const prevColumns = allColumns;
+            allColumns = columns;
+            showInsightsFromRow(rows[matchIdx], columns);
+            allColumns = prevColumns;
+        }
+
+        // ── Toggle full dataset view ──────────────────────────────────────────
+        function toggleDatasetView() {
+            if (!currentDataset) return;
+
+            if (viewMode !== 'full') {
+                if (fullRows.length) {
+                    viewMode = 'full'; selectedRisk = null;
+                    renderTable(fullColumns, fullRows);
+                    document.getElementById('tilesWrapper').style.display   = 'none';
+                    document.getElementById('backBtn').style.display        = 'none';
+                    const titleEl = document.getElementById('cardTitle');
+                    titleEl.textContent = 'Full Dataset'; titleEl.className = '';
+                    document.getElementById('toggleDatasetBtn').textContent = 'Dataset Outline';
+                    syncInsightsToView(fullColumns, fullRows);
+                } else {
+                    showSpinner();
+                    fetch(`/${currentDataset}/view_dataset`, { headers: { 'Accept': 'application/json' } })
+                        .then(r => r.json())
+                        .then(data => {
+                            hideSpinner();
+                            if (data.error) { showMessage('Error: ' + data.error); return; }
+                            fullColumns = data.columns;
+                            fullRows    = sortByRisk(data.columns, data.rows);
+                            viewMode    = 'full'; selectedRisk = null;
+                            renderTable(fullColumns, fullRows);
+                            document.getElementById('tilesWrapper').style.display   = 'none';
+                            document.getElementById('backBtn').style.display        = 'none';
+                            const titleEl = document.getElementById('cardTitle');
+                            titleEl.textContent = 'Full Dataset'; titleEl.className = '';
+                            document.getElementById('toggleDatasetBtn').textContent = 'Dataset Outline';
+                            syncInsightsToView(fullColumns, fullRows);
+                        })
+                        .catch(err => { hideSpinner(); showMessage('Error: ' + err.message); });
+                }
+            } else {
+                viewMode = 'dashboard'; selectedRisk = null;
+                const titleEl = document.getElementById('cardTitle');
+                titleEl.textContent = 'Employee Data'; titleEl.className = '';
+                document.getElementById('toggleDatasetBtn').textContent = 'View Full Dataset';
+                showTiles();
+            }
+        }
+
+        // ── File browse / upload ──────────────────────────────────────────────
+        function handleFileSelect(input) {
+            const file = input.files[0];
+            if (!file) return;
+            document.getElementById('datasetLabel').textContent = file.name;
+            uploadFile(file);
+        }
+
+        function uploadFile(file) {
+            showSpinner();
+            const fd = new FormData();
+            fd.append('file', file);
+
+            fetch('/upload', { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(data => {
+                    hideSpinner();
+                    if (data.error) { showMessage('Error: ' + data.error); return; }
+
+                    currentDataset = data.dataset;
+                    viewMode       = 'dashboard';
+                    selectedRisk   = null;
+                    conciseColumns = data.columns;
+                    conciseRows    = sortByRisk(data.columns, data.rows);
+                    fullColumns    = [];
+                    fullRows       = [];
+                    lastSelectedId = null;
+                    buildIndex(conciseColumns, conciseRows);
+                    updateTileCounts(conciseRows);
+                    Object.keys(strategyCache).forEach(k => delete strategyCache[k]);
+
+                    history.pushState(null, '', `/${currentDataset}/Dashboard`);
+
+                    document.getElementById('tableWrapper').style.display        = 'none';
+                    document.getElementById('tableMessage').style.display        = 'none';
+                    document.getElementById('tilesWrapper').style.display        = '';
+                    document.getElementById('backBtn').style.display             = 'none';
+                    const titleEl = document.getElementById('cardTitle');
+                    titleEl.textContent = 'Employee Data'; titleEl.className = '';
+                    document.getElementById('toggleDatasetBtn').style.display    = '';
+                    document.getElementById('toggleDatasetBtn').textContent      = 'View Full Dataset';
+                    document.getElementById('employeeSearch').value              = '';
+                    document.getElementById('insightsContent').innerHTML         = '<div class="table-message">Select an employee to view details.</div>';
+
+                    loadStrategySummary();
+                    fetchGlobalInsights(data.dataset);
+                })
+                .catch(err => { hideSpinner(); showMessage('Error: ' + err.message); });
+        }
+
+        // ── Strategy: single employee ─────────────────────────────────────────
+        function loadStrategies(empId) {
+            const body     = document.getElementById('strategyPanelBody');
+            const subtitle = document.getElementById('strategySubtitle');
+
+            if (strategyCache[empId]) {
+                subtitle.textContent = `Employee ${empId}`;
+                renderStrategies(strategyCache[empId]);
+                return;
+            }
+
+            body.innerHTML = `<div class="strategies-loading"><div class="mini-spinner"></div><span>Loading strategies…</span></div>`;
+
+            fetch(`/${currentDataset}/strategy/employee=${empId}`, { headers: { 'Accept': 'application/json' } })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.error) {
+                        body.innerHTML = `<div class="risk-only-note">${escapeHtml(data.error)}</div>`;
+                        return;
+                    }
+                    strategyCache[empId] = data.result;
+                    subtitle.textContent = `Employee ${empId}`;
+                    renderStrategies(data.result);
+                })
+                .catch(err => {
+                    body.innerHTML = `<div class="risk-only-note">Failed to load: ${escapeHtml(err.message)}</div>`;
+                });
+        }
+
+        // ── Render per-employee strategies ────────────────────────────────────
+        function renderStrategies(result) {
+            const body       = document.getElementById('strategyPanelBody');
+            const strategies = result.Strategies || [];
+
+            if (!strategies.length) {
+                body.innerHTML = `<span class="strategies-empty">No strategies found for this employee.</span>`;
+                return;
+            }
+
+            const grouped = {};
+            strategies.forEach(s => {
+                const key = s.Feature || 'General';
+                if (!grouped[key]) grouped[key] = [];
+                grouped[key].push(s);
+            });
+
+            const total    = strategies.length;
+            const features = Object.keys(grouped).length;
+            const role     = result.Role || '—';
+
+            let html = `
+                <div class="strategy-summary-bar">
+                    <div class="summary-stat"><div class="stat-val">${total}</div><div class="stat-lbl">Strategies</div></div>
+                    <div class="summary-stat"><div class="stat-val">${features}</div><div class="stat-lbl">Key Factors</div></div>
+                    <div class="summary-stat"><div class="stat-val" style="font-size:0.82rem">${escapeHtml(role)}</div><div class="stat-lbl">Role Group</div></div>
+                </div>`;
+
+            Object.entries(grouped).forEach(([feature, items]) => {
+                const first    = items[0];
+                const level    = (first.ClusterLevel || 'N/A').toLowerCase();
+                const levelCls = level === 'n/a' ? 'na' : level;
+                const val      = first.FeatureValue !== undefined ? String(first.FeatureValue) : '';
+
+                html += `<div class="strategy-feature-group">
+                    <div class="strategy-feature-title">
+                        ${escapeHtml(feature)}
+                        ${val ? `<span class="feature-badge">${escapeHtml(val)}</span>` : ''}
+                        <span class="level-pill ${levelCls}">${escapeHtml(first.ClusterLevel || 'N/A')}</span>
+                    </div>`;
+
+                items.forEach(s => {
+                    const shap = s.SHAP_Impact;
+                    let shapHtml = '';
+                    if (shap !== null && shap !== undefined) {
+                        const sign = shap >= 0 ? 'pos' : 'neg';
+                        const arrow = shap >= 0 ? '↑' : '↓';
+                        shapHtml = `<span class="shap-chip ${sign}">${arrow} ${Math.abs(shap).toFixed(3)}</span>`;
+                    }
+                    html += `<div class="strategy-card">${shapHtml}${escapeHtml(s.RecommendedStrategy)}</div>`;
+                });
+
+                html += `</div>`;
+            });
+
+            body.innerHTML = html;
+        }
+
+        // ── Strategy: global summary (no employee selected) ───────────────────
+        function loadStrategySummary() {
+            if (!currentDataset) return;
+            const body     = document.getElementById('strategyPanelBody');
+            const subtitle = document.getElementById('strategySubtitle');
+            subtitle.textContent = 'General summary across all employees';
+            body.innerHTML = `<div class="strategies-loading"><div class="mini-spinner"></div><span>Loading summary…</span></div>`;
+
+            fetch(`/${currentDataset}/strategy/summary`, { headers: { 'Accept': 'application/json' } })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.error) {
+                        body.innerHTML = `<div class="risk-only-note">${escapeHtml(data.error)}</div>`;
+                        return;
+                    }
+                    renderStrategySummary(data.summary);
+                })
+                .catch(err => {
+                    body.innerHTML = `<div class="risk-only-note">Failed to load summary: ${escapeHtml(err.message)}</div>`;
+                });
+        }
+
+        function renderStrategySummary(s) {
+            const body      = document.getElementById('strategyPanelBody');
+            const riskDist  = s.RiskDistribution  || {};
+            const total     = s.TotalEmployees     || 0;
+            const riskColors = {
+                'Critical Risk': '#ef4444', 'High Risk': '#ff8000',
+                'Medium Risk': '#f8bc07',   'Low Risk': '#22c55e',
+            };
+            const riskBars = Object.entries(riskDist).map(([label, count]) => {
+                const pct   = total > 0 ? (count / total * 100).toFixed(1) : 0;
+                const color = riskColors[label] || '#007589';
+                return `<div class="risk-dist-row">
+                    <span class="risk-dist-label">${escapeHtml(label)}</span>
+                    <div class="risk-dist-bar-track"><div class="risk-dist-bar-fill" style="width:${pct}%;background:${color};"></div></div>
+                    <span class="risk-dist-count">${count}</span>
+                </div>`;
+            }).join('');
+
+            body.innerHTML = `
+                <div class="global-summary-grid">
+                    <div class="global-stat-tile"><div class="gst-val">${total}</div><div class="gst-lbl">Total Employees</div></div>
+                    <div class="global-stat-tile"><div class="gst-val">${s.HighRiskEmployees || 0}</div><div class="gst-lbl">High / Critical Risk</div></div>
+                    <div class="global-stat-tile"><div class="gst-val">${s.LowRiskEmployees || 0}</div><div class="gst-lbl">Low / Medium Risk</div></div>
+                    <div class="global-stat-tile"><div class="gst-val">${s.AvgStrategiesPerEmployee || '—'}</div><div class="gst-lbl">Avg Strategies / Employee</div></div>
+                </div>
+                <div class="global-risk-dist">
+                    <div class="global-risk-dist-title">Risk Distribution</div>
+                    ${riskBars}
+                </div>`;
+        }
+
+        // ── Spinner helpers ───────────────────────────────────────────────────
+        function showSpinner() {
+            document.getElementById('tableMessage').style.display   = 'none';
+            document.getElementById('tableWrapper').style.display   = 'none';
+            document.getElementById('tilesWrapper').style.display   = 'none';
+            document.getElementById('loadingSpinner').style.display = 'flex';
+        }
+        function hideSpinner() {
+            document.getElementById('loadingSpinner').style.display = 'none';
+        }
+        function showMessage(msg) {
+            const el = document.getElementById('tableMessage');
+            el.textContent = msg;
+            el.style.display = '';
+        }
+        function escapeHtml(s) {
+            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        }
+
+        // ── Restore from URL on page load ─────────────────────────────────────
+        (function checkInitialUrl() {
+            const path      = window.location.pathname;
+            const matchDash = path.match(/^\/(.+\.csv)\/Dashboard$/);
+            const matchEmp  = path.match(/^\/(.+\.csv)\/select_employee_id=(.+)$/);
+
+            if (matchDash) {
+                currentDataset = matchDash[1];
+                document.getElementById('datasetLabel').textContent = currentDataset;
+                showSpinner();
+                fetch(`/${currentDataset}/Dashboard`, { headers: { 'Accept': 'application/json' } })
+                    .then(r => r.json())
+                    .then(data => {
+                        hideSpinner();
+                        if (data.error) { showMessage('Error: ' + data.error); return; }
+                        conciseColumns = data.columns;
+                        conciseRows    = sortByRisk(data.columns, data.rows);
+                        buildIndex(conciseColumns, conciseRows);
+                        updateTileCounts(conciseRows);
+                        document.getElementById('tilesWrapper').style.display     = '';
+                        document.getElementById('toggleDatasetBtn').style.display = '';
+                        document.getElementById('toggleDatasetBtn').textContent   = 'View Full Dataset';
+                        loadStrategySummary();
+                        fetchGlobalInsights(currentDataset);
+                    })
+                    .catch(err => { hideSpinner(); showMessage('Error: ' + err.message); });
+
+            } else if (matchEmp) {
+                window.location.replace(`/${matchEmp[1]}/Dashboard`);
+            }
+        })();
+
+        // ── Global SHAP feature insights ──────────────────────────────────────
+        function fetchGlobalInsights(dataset) {
+            document.getElementById('jobInsightsContent').innerHTML =
+                '<div class="loading-spinner"><div class="spinner"></div><span>Computing insights...</span></div>';
+
+            fetch(`/${dataset}/global_insights`, { headers: { 'Accept': 'application/json' } })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.error) {
+                        document.getElementById('jobInsightsContent').innerHTML =
+                            `<p class="table-message">Error: ${escapeHtml(data.error)}</p>`;
+                        return;
+                    }
+                    window._insightsData = data.explanations;
+                    const select = document.getElementById('jobRoleSelect');
+                    select.innerHTML = '<option value="__all__">All Roles</option>';
+                    Object.keys(data.explanations).forEach(role => {
+                        const opt = document.createElement('option');
+                        opt.value = role; opt.textContent = role;
+                        select.appendChild(opt);
+                    });
+                    select.value = '__all__';
+                    select.style.display = '';
+                    renderInsightsBars(data.explanations);
+                })
+                .catch(() => {
+                    document.getElementById('jobInsightsContent').innerHTML =
+                        `<p class="table-message">Failed to load insights.</p>`;
+                });
+        }
+
+        function renderInsightsBars(explanations) {
+            const selectedRole = document.getElementById('jobRoleSelect')?.value || '__all__';
+            let featureTotals  = {};
+
+            if (selectedRole === '__all__') {
+                Object.values(explanations).forEach(list => {
+                    list.forEach(([feat, weight]) => {
+                        if (!featureTotals[feat]) featureTotals[feat] = [];
+                        featureTotals[feat].push(weight);
+                    });
+                });
+            } else {
+                (explanations[selectedRole] || []).forEach(([feat, weight]) => {
+                    if (!featureTotals[feat]) featureTotals[feat] = [];
+                    featureTotals[feat].push(weight);
+                });
+            }
+
+            const aggregated = Object.entries(featureTotals).map(([feat, weights]) => ({
+                feat, mean: weights.reduce((a, b) => a + b, 0) / weights.length
+            }));
+
+            const seen = new Map();
+            aggregated.forEach(({ feat, mean }) => {
+                const clean = (feat.match(/([A-Za-z_][A-Za-z0-9_]*)/) || [null, feat])[1];
+                if (!seen.has(clean) || Math.abs(mean) > Math.abs(seen.get(clean).mean))
+                    seen.set(clean, { feat: clean, mean });
+            });
+
+            const deduped = [...seen.values()].sort((a, b) => Math.abs(b.mean) - Math.abs(a.mean)).slice(0, 8);
+            const maxAbs  = Math.max(...deduped.map(d => Math.abs(d.mean)));
+
+            const html = deduped.map(({ feat, mean }) => {
+                const pct   = (Math.abs(mean) / maxAbs * 100).toFixed(1);
+                const color = mean >= 0 ? '#22c55e' : '#ef4444';
+                const label = Math.abs(mean).toFixed(3);
+                return `<div class="insight-bar-row">
+                    <span class="insight-feat-label">${escapeHtml(feat)}</span>
+                    <div class="insight-bar-track"><div class="insight-bar-fill" style="width:${pct}%;background:${color};"></div></div>
+                    <span class="insight-bar-value">${label}</span>
+                </div>`;
+            }).join('');
+
+            document.getElementById('jobInsightsContent').innerHTML = html || '<p class="table-message">No data.</p>';
+        }
+        // ── Track the full row object of the last selected employee ──────────
+        let lastSelectedRow = null;
+
+        // ── Show / hide report button alongside insights ──────────────────────
+        function _updateReportBtn(show) {
+            const btn = document.getElementById('generateReportBtn');
+            if (btn) btn.style.display = show ? '' : 'none';
+        }
+
+        // ── Generate report — pack data into sessionStorage, open new tab ─────
+        function generateReport() {
+            if (!lastSelectedId || !lastSelectedRow) return;
+
+            const profileRow     = lastSelectedRow;
+            const profileColumns = conciseColumns.length ? conciseColumns : allColumns;
+
+            // Attrition probability
+            const probCol       = profileColumns.find(c => c.toLowerCase() === 'attrition_probability');
+            const attritionProb = probCol ? String(profileRow[probCol] ?? '0') : '0';
+
+            // Risk level
+            const riskCol   = profileColumns.find(c => c === RISK_COL || c.toLowerCase() === 'predicted_risk');
+            const riskLevel = riskCol ? String(profileRow[riskCol] ?? '') : '';
+
+            // Job role string
+            const jobRoleMap = { 0: 'Other', 1: 'Nurse', 2: 'Therapist', 3: 'Administrative', 4: 'Admin' };
+            const jobRoleCol = profileColumns.find(c => c.toLowerCase() === 'jobrole');
+            let jobRole = '';
+            if (jobRoleCol) {
+                const raw = profileRow[jobRoleCol];
+                jobRole = isNaN(parseInt(raw)) ? String(raw) : (jobRoleMap[parseInt(raw)] || String(raw));
+            }
+
+            // Extra fields from fullRows (combined dataset)
+            // These exist in combined_df_table.json but not in the concise 6-col view
+            const EXTRA_FIELD_NAMES = [
+                'BusinessTravel', 'Gender', 'OverTime',
+                'HourlyRate', 'DistanceFromHome', 'MonthlyRate'
+            ];
+            let extraFields = {};
+            if (fullRows.length && lastSelectedId) {
+                const idCol = fullColumns.find(c => c.toLowerCase() === 'employeeid' || c.toLowerCase() === 'id');
+                if (idCol) {
+                    const fullRow = fullRows.find(r => String(r[idCol] ?? '').trim() === lastSelectedId);
+                    if (fullRow) {
+                        EXTRA_FIELD_NAMES.forEach(f => {
+                            if (fullRow[f] !== undefined && fullRow[f] !== null) extraFields[f] = fullRow[f];
+                        });
+                    }
+                }
+            }
+
+            // SHAP features for this job role
+            let shapFeatures = [];
+            if (window._insightsData && jobRole && window._insightsData[jobRole]) {
+                shapFeatures = window._insightsData[jobRole].map(([feat, mean]) => ({ feat, mean }));
+            }
+
+            // Strategies from cache
+            const strategies = strategyCache[lastSelectedId] || null;
+
+            const reportData = {
+                employeeId: lastSelectedId,
+                profileColumns,
+                profileRow,
+                extraFields,
+                attritionProb,
+                riskLevel,
+                jobRole,
+                shapFeatures,
+                strategies,
+            };
+
+            sessionStorage.setItem('reportData', JSON.stringify(reportData));
+            window.open('/report', '_blank');
+        }
+    </script>
+</body>
+</html>

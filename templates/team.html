@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Our Team</title>
+    <link rel="stylesheet" href="../static/team_stylesheet.css">
+</head>
+
+<div class="container">
+    <nav class="navigation-bar">
+        <div class="product-identity">
+            <a href="/" style="text-decoration: none">
+                <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="product-logo" class="product-logo">
+            </a>
+            <h1 class="product-name">Vital Pulse AI</h1>
+        </div>
+        <div class="navigation-panel">
+            <a href="/" class="home">Home</a>
+            <a href="/dashboard" class="product">Dashboard</a>
+            <a href="/team" class="team active">Our Team</a> </div>
+        <button class="browse-btn" onclick="">SIGN IN</button>
+    </nav>
+
+    <div class="team-grid">
+        <div class="team-card">
+            <div class="member-image-box">
+{#                <img src="../static/assets/kovindu_pic.png" alt="k_pic">#}
+                <img src="{{ url_for('static', filename='assets/kovindu_pic.png') }}" alt="k_pic">
+            </div>
+            <h2 class="member-name">Kovindu Wickramanayake</h2>
+            <div class="social-icons">
+                <a href="https://github.com/Kovindu555"><img src="../static/assets/github.png" alt="GitHub"></a>
+                <a href="https://www.linkedin.com/in/kovindu-wickramanayake/"><img src="../static/assets/linkedin.png" alt="LinkedIn"></a>
+            </div>
+        </div>
+
+        <div class="team-card">
+            <div class="member-image-box">
+{#                <img src="../static/assets/meleesha_pic.jpeg" alt="m_pic">#}
+                <img src="{{ url_for('static', filename='assets/meleesha_pic.jpeg') }}" alt="m_pic">
+            </div>
+            <h2 class="member-name">Meleesha Gamage</h2>
+            <div class="social-icons">
+                <a href="https://github.com/meleeshagamage"><img src="../static/assets/github.png" alt="GitHub"></a>
+                <a href="https://www.linkedin.com/in/meleesha-gamage"><img src="../static/assets/linkedin.png" alt="LinkedIn"></a>
+            </div>
+        </div>
+
+        <div class="team-card">
+            <div class="member-image-box">
+{#                <img src="../static/assets/imaadh_pic.jpeg" alt="i_pic">#}
+                <img src="{{ url_for('static', filename='assets/imaadh_pic.jpeg') }}" alt="i_pic">
+            </div>
+            <h2 class="member-name">Imaadh Mukthar</h2>
+            <div class="social-icons">
+                <a href="https://github.com/ImaadhMukthar"><img src="../static/assets/github.png" alt="GitHub"></a>
+                <a href="https://www.linkedin.com/in/imaadh-mukthar"><img src="../static/assets/linkedin.png" alt="LinkedIn"></a>
+            </div>
+        </div>
+    </div>
+</div>

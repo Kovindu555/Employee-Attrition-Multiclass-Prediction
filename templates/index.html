@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home-page</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='index_style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <nav class="navigation-bar">
+            <div class="product-identity">
+                <a href="/" style="text-decoration: none">
+                    <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="product-logo" class="product-logo">
+                </a>
+                <h1 class="product-name">Vital Pulse AI</h1>
+            </div>
+            <div class="navigation-panel">
+                <a href="/" class="home active">Home</a> <a href="{{ url_for('product_page') }}" class="product">Dashboard</a>
+                <a href="{{ url_for('team_page') }}" class="team">Our Team</a>
+            </div>
+            {% if logged_in %}
+                <button class="browse-btn" onclick="window.location.href='/logout'">Logout</button>
+            {% else %}
+                <button class="browse-btn" onclick="window.location.href='/signup'">SIGN IN</button>
+            {% endif %}
+        </nav>
+        <div class="content">
+            <div class="backdrop">
+                <p>Welcome!</p>
+                <h1 style="text-shadow: 0px 0px 10px #006e81, 0px 0px 20px #006e81; color: white; font-size: 50px">Predict the Risk, <br>Shape the outcome.</h1>
+                <button class="product" onclick="window.location.href='/dashboard'">Get Started</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.querySelector('.product').addEventListener('click', function() {
+            fetch('/product')
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                })
+                .catch(error => console.error('Error fetching product data:', error));
+        });
+    </script>
+</body>
+</html>

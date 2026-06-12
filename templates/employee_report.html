@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Risk Report</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap');
+
+        :root {
+            --teal-dark:  #005160;
+            --teal:       #007589;
+            --teal-light: #e8f4f6;
+            --teal-mid:   #daebed;
+            --text:       #1a1a2e;
+            --muted:      #6b7280;
+            --border:     #e5e7eb;
+            --white:      #ffffff;
+            --red:        #9b1c1c;
+            --red-bg:     #fde8e8;
+            --orange:     #944b00;
+            --orange-bg:  #fff0e0;
+            --yellow:     #856404;
+            --yellow-bg:  #fffbe6;
+            --green:      #1a7a3e;
+            --green-bg:   #e6f9ee;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: #f3f4f6;
+            color: var(--text);
+        }
+
+        /* ── Download button — hidden on print ──────────────────────────── */
+        .download-bar {
+            position: fixed;
+            bottom: 28px;
+            right: 32px;
+            z-index: 999;
+        }
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--teal);
+            color: var(--white);
+            border: none;
+            border-radius: 999px;
+            padding: 12px 24px;
+            font-family: 'Roboto', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(0,117,137,0.4);
+            transition: background 0.2s;
+        }
+        .download-btn:hover { background: var(--teal-dark); }
+
+        /* ── A4 page shell ──────────────────────────────────────────────── */
+        .report-page {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 20px auto;
+            background: var(--white);
+            box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* ── First-page header band ─────────────────────────────────────── */
+        .report-header {
+            background: linear-gradient(135deg, var(--teal-dark) 0%, var(--teal) 100%);
+            padding: 32px 40px 26px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-shrink: 0;
+        }
+
+        .header-left { display: flex; align-items: center; gap: 14px; }
+
+        /* FILLER — set src to your logo, e.g. /static/assets/logo.png */
+        .report-logo {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.15);
+            padding: 6px;
+        }
+
+        .header-brand h1 {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--white);
+            letter-spacing: 0.02em;
+        }
+        .header-brand p { font-size: 11px; color: rgba(255,255,255,0.65); margin-top: 2px; }
+
+        .header-right { text-align: right; }
+        .report-title { font-size: 21px; font-weight: 800; color: var(--white); }
+        .report-meta  { font-size: 11px; color: rgba(255,255,255,0.65); margin-top: 4px; }
+
+        .risk-badge-large {
+            display: inline-block;
+            padding: 4px 14px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            margin-top: 8px;
+        }
+        .risk-critical { background: var(--red-bg);    color: var(--red);    }
+        .risk-high     { background: var(--orange-bg); color: var(--orange); }
+        .risk-medium   { background: var(--yellow-bg); color: var(--yellow); }
+        .risk-low      { background: var(--green-bg);  color: var(--green);  }
+
+        /* ── Minimal page header (pages 2+, print only) ─────────────────── */
+        .page-mini-header {
+            display: none; /* shown only via @media print running-header trick */
+        }
+
+        /* ── Report body ────────────────────────────────────────────────── */
+        .report-body {
+            padding: 30px 40px;
+            flex: 1;
+            /* leave room for fixed footer at bottom */
+            padding-bottom: 60px;
+        }
+
+        /* ── Section ────────────────────────────────────────────────────── */
+        .section { margin-bottom: 30px; }
+
+        .section-title {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--teal);
+            border-bottom: 2px solid var(--teal-light);
+            padding-bottom: 5px;
+            margin-bottom: 16px;
+        }
+
+        /* ── Probability bar ────────────────────────────────────────────── */
+        .prob-wrap { margin-bottom: 16px; }
+        .prob-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+        .prob-header strong { font-size: 18px; font-weight: 800; color: var(--text); }
+        .prob-track {
+            height: 9px;
+            background: #e5e7eb;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+        .prob-fill {
+            height: 100%;
+            border-radius: 999px;
+        }
+        .prob-fill.low      { background: var(--green);  }
+        .prob-fill.medium   { background: #d97706; }
+        .prob-fill.high     { background: var(--orange); }
+        .prob-fill.critical { background: var(--red);    }
+
+        /* ── Profile grid ───────────────────────────────────────────────── */
+        .profile-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0 24px;
+        }
+        .profile-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding: 6px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 12px;
+        }
+        .profile-label { color: var(--muted); }
+        .profile-value { font-weight: 600; color: var(--text); text-align: right; }
+
+        /* ── SHAP bar rows ──────────────────────────────────────────────── */
+        .shap-legend {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 12px;
+            font-size: 11px;
+            color: var(--muted);
+        }
+        .shap-legend-item { display: flex; align-items: center; gap: 5px; }
+        .shap-legend-dot {
+            width: 10px; height: 10px; border-radius: 50%;
+        }
+
+        .shap-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 9px;
+        }
+        .shap-label {
+            width: 150px;
+            flex-shrink: 0;
+            font-size: 11px;
+            color: var(--text);
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .shap-bar-track {
+            flex: 1;
+            height: 11px;
+            background: #e5e7eb;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+        .shap-bar-fill { height: 100%; border-radius: 999px; }
+        .shap-val {
+            width: 38px;
+            font-size: 10px;
+            font-weight: 700;
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .shap-dir {
+            width: 14px;
+            flex-shrink: 0;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .low-risk-note {
+            background: var(--green-bg);
+            border: 1px solid #a8e6c0;
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 12px;
+            color: var(--green);
+            line-height: 1.6;
+        }
+
+        .section-subtitle {
+            font-size: 11px;
+            color: var(--muted);
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+
+        /* ── Strategy groups ────────────────────────────────────────────── */
+        .strategy-group { margin-bottom: 16px; }
+        .strategy-group-title {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: var(--teal);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 7px;
+            flex-wrap: wrap;
+        }
+        .feat-badge {
+            font-size: 10px;
+            padding: 1px 7px;
+            border-radius: 999px;
+            background: var(--teal-light);
+            color: var(--teal-dark);
+            font-weight: 600;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+        .level-pill {
+            font-size: 9px;
+            padding: 1px 7px;
+            border-radius: 999px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .level-pill.low      { background: var(--green-bg);   color: var(--green);  }
+        .level-pill.medium   { background: var(--yellow-bg);  color: var(--yellow); }
+        .level-pill.high     { background: var(--orange-bg);  color: var(--orange); }
+        .level-pill.critical { background: var(--red-bg);     color: var(--red);    }
+        .level-pill.na       { background: var(--teal-mid);   color: var(--teal-dark); }
+
+        .strategy-item {
+            background: #f9fafb;
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--teal);
+            border-radius: 7px;
+            padding: 7px 12px;
+            font-size: 12px;
+            color: #333;
+            margin-bottom: 5px;
+            line-height: 1.5;
+        }
+
+        .no-strategies { font-size: 12px; color: var(--muted); font-style: italic; }
+
+        /* ── Fixed footer — every page ──────────────────────────────────── */
+        .report-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            /* Centred inside A4 width on screen */
+            width: 210mm;
+            margin: 0 auto;
+            background: #f9fafb;
+            border-top: 1px solid var(--border);
+            padding: 9px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 10px;
+            color: var(--muted);
+            z-index: 10;
+        }
+
+        /* ── Print styles ───────────────────────────────────────────────── */
+        @media print {
+            body { background: white; }
+            .download-bar { display: none !important; }
+
+            .report-page {
+                width: 100%;
+                margin: 0;
+                box-shadow: none;
+            }
+
+            /* Fixed footer prints on every page automatically */
+            .report-footer {
+                width: 100%;
+                position: fixed;
+                bottom: 0;
+            }
+
+            /* Minimal running header on pages 2+ */
+            .page-mini-header {
+                display: block;
+                position: running(miniHeader);
+                background: var(--teal-dark);
+                color: var(--white);
+                padding: 6px 40px;
+                font-size: 10px;
+                font-weight: 500;
+                display: flex;
+                justify-content: space-between;
+            }
+
+            @page {
+                size: A4;
+                margin: 0;
+                margin-bottom: 32px; /* room for fixed footer */
+
+                @top-center {
+                    content: element(miniHeader);
+                }
+            }
+
+            /* First page: no running header */
+            @page :first {
+                @top-center { content: none; }
+            }
+
+            .report-body { padding-bottom: 44px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Download button -->
+    <div class="download-bar">
+        <button class="download-btn" onclick="window.print()">&#8595; Download PDF</button>
+    </div>
+
+    <!-- Minimal header injected on pages 2+ during print -->
+    <div class="page-mini-header" id="miniHeader">
+        <!-- FILLER — update product name -->
+        <span>Vital Pulse AI &nbsp;·&nbsp; Employee Risk Report</span>
+        <span id="miniHeaderMeta"></span>
+    </div>
+
+    <div class="report-page">
+
+        <!-- First-page header -->
+        <div class="report-header">
+            <div class="header-left">
+                <!--
+                    FILLER — logo
+                    Update src to: /static/assets/logo.png  (or base64)
+                -->
+                <img id="reportLogo" class="report-logo" src=""
+                     alt="logo" onerror="this.style.display='none'">
+                <div class="header-brand">
+                    <!-- FILLER — product / company name -->
+                    <h1 id="reportBrandName">Vital Pulse AI</h1>
+                    <p>Employee Attrition Risk Report</p>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="report-title">Employee Report</div>
+                <div class="report-meta" id="reportMeta"></div>
+                <div id="headerRiskBadge"></div>
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="report-body">
+
+            <!-- 1. Attrition Risk -->
+            <div class="section">
+                <div class="section-title">Attrition Risk</div>
+                <div class="prob-wrap">
+                    <div class="prob-header">
+                        <span>Predicted Attrition Probability</span>
+                        <strong id="probDisplay">—</strong>
+                    </div>
+                    <div class="prob-track">
+                        <div class="prob-fill" id="probFill" style="width:0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Employee Profile -->
+            <div class="section">
+                <div class="section-title">Employee Profile</div>
+                <div class="profile-grid" id="profileGrid"></div>
+            </div>
+
+            <!-- 3. Key Attrition Drivers -->
+            <div class="section" id="featureSection">
+                <div class="section-title" id="featureSectionTitle">Key Attrition Drivers</div>
+                <div id="featureContent"></div>
+            </div>
+
+            <!-- 4. Retention Strategies -->
+            <div class="section">
+                <div class="section-title" id="strategySectionTitle">Retention Strategies</div>
+                <div id="strategiesContent"></div>
+            </div>
+
+        </div>
+
+        <!-- Fixed footer — appears on every printed page -->
+        <div class="report-footer">
+            <!-- FILLER — update product / company name -->
+            <span>Generated by <strong>Vital Pulse AI</strong></span>
+            <span id="footerMeta"></span>
+        </div>
+
+    </div>
+
+    <script>
+        function escapeHtml(s) {
+            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        }
+
+        function riskClass(level) {
+            const map = {
+                'critical risk': 'critical',
+                'high risk':     'high',
+                'medium risk':   'medium',
+                'low risk':      'low'
+            };
+            return map[(level || '').toLowerCase()] || 'low';
+        }
+
+        // Pretty-print field names: "BusinessTravel" → "Business Travel"
+        function prettyLabel(col) {
+            return col
+                .replace(/([A-Z])/g, ' $1')
+                .replace(/^./, s => s.toUpperCase())
+                .trim();
+        }
+
+        function render(data) {
+            const { employeeId, profileColumns, profileRow, extraFields,
+                    attritionProb, riskLevel, jobRole,
+                    shapFeatures, strategies } = data;
+
+            // ── Date / time ──────────────────────────────────────────────────
+            const now      = new Date();
+            const dateStr  = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+            const timeStr  = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+            const fullMeta = `${dateStr} at ${timeStr}  ·  Employee ID: ${employeeId}`;
+            const shortMeta = `${dateStr}, ${timeStr}  ·  ID: ${employeeId}`;
+
+            document.getElementById('reportMeta').textContent    = `Generated: ${fullMeta}`;
+            document.getElementById('footerMeta').textContent    = `Report generated: ${dateStr} at ${timeStr}`;
+            document.getElementById('miniHeaderMeta').textContent = shortMeta;
+            document.title = `Report — Employee ${employeeId}`;
+
+            // ── Header risk badge ────────────────────────────────────────────
+            const riskCls = riskClass(riskLevel);
+            document.getElementById('headerRiskBadge').innerHTML =
+                `<span class="risk-badge-large risk-${riskCls}">${escapeHtml(riskLevel || 'Unknown')}</span>`;
+
+            // ── Probability bar ──────────────────────────────────────────────
+            const prob       = parseFloat(String(attritionProb || '0').replace('%', ''));
+            const probDisplay = isNaN(prob) ? '—' : prob.toFixed(1) + '%';
+            document.getElementById('probDisplay').textContent = probDisplay;
+            const fillEl = document.getElementById('probFill');
+            fillEl.style.width = Math.min(prob, 100) + '%';
+            fillEl.className   = 'prob-fill ' + riskCls;
+
+            // ── Profile grid ─────────────────────────────────────────────────
+            // Concise fields first, then extra fields from full dataset
+            const skipCols = new Set(['attrition_probability', 'predicted_risk', 'attrition_binary']);
+            const baseCols = profileColumns.filter(c => !skipCols.has(c.toLowerCase()));
+
+            // Extra fields requested — shown only if present in the full row
+            const EXTRA_FIELDS = [
+                'BusinessTravel', 'Gender', 'OverTime',
+                'HourlyRate', 'DistanceFromHome', 'MonthlyRate'
+            ];
+            const mergedRow = Object.assign({}, profileRow, extraFields || {});
+
+            // Build ordered field list: base cols + any extra cols not already present
+            const baseColSet = new Set(baseCols.map(c => c.toLowerCase()));
+            const extraCols  = EXTRA_FIELDS.filter(f =>
+                !baseColSet.has(f.toLowerCase()) &&
+                mergedRow[f] !== undefined && mergedRow[f] !== null
+            );
+            const allProfileCols = [...baseCols, ...extraCols];
+
+            // Split into two equal columns for the grid
+            const halfLen = Math.ceil(allProfileCols.length / 2);
+            const col1    = allProfileCols.slice(0, halfLen);
+            const col2    = allProfileCols.slice(halfLen);
+            const maxLen  = Math.max(col1.length, col2.length);
+
+            let gridHtml = '';
+            for (let i = 0; i < maxLen; i++) {
+                [col1[i], col2[i]].forEach(col => {
+                    if (col) {
+                        const val = mergedRow[col] ?? '—';
+                        gridHtml += `<div class="profile-row">
+                            <span class="profile-label">${escapeHtml(prettyLabel(col))}</span>
+                            <span class="profile-value">${escapeHtml(String(val))}</span>
+                        </div>`;
+                    } else {
+                        gridHtml += `<div></div>`;
+                    }
+                });
+            }
+            document.getElementById('profileGrid').innerHTML = gridHtml;
+
+            // ── Key Attrition Drivers ────────────────────────────────────────
+            // Section title mentions job role
+            const roleLabel = jobRole ? ` — ${escapeHtml(jobRole)} Role Group` : '';
+            document.getElementById('featureSectionTitle').innerHTML =
+                `Key Attrition Drivers<span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);font-size:9px;"> ${roleLabel}</span>`;
+
+            const featureEl = document.getElementById('featureContent');
+
+            if (prob < 25) {
+                featureEl.innerHTML = `<div class="low-risk-note">
+                    This employee's attrition probability is <strong>${probDisplay}</strong>, placing them in the low-risk category.
+                    Detailed feature impact analysis is not included for low-risk employees.
+                    Maintain standard engagement and preventive retention practices.
+                </div>`;
+            } else if (!shapFeatures || shapFeatures.length === 0) {
+                featureEl.innerHTML = `<p style="font-size:12px;color:var(--muted);font-style:italic;">
+                    Feature impact data is not available for this employee's job role.
+                </p>`;
+            } else {
+                const maxAbs = Math.max(...shapFeatures.map(f => Math.abs(f.mean)));
+
+                // Legend
+                const legendHtml = `<div class="shap-legend">
+                    <div class="shap-legend-item">
+                        <div class="shap-legend-dot" style="background:#22c55e;"></div>
+                        <span>Increases attrition risk</span>
+                    </div>
+                    <div class="shap-legend-item">
+                        <div class="shap-legend-dot" style="background:#ef4444;"></div>
+                        <span>Reduces attrition risk</span>
+                    </div>
+                </div>`;
+
+                const shapHtml = shapFeatures.slice(0, 10).map(({ feat, mean }) => {
+                    const pct      = maxAbs > 0 ? (Math.abs(mean) / maxAbs * 100).toFixed(1) : 0;
+                    // Green = positive SHAP (increases risk), Red = negative (reduces risk)
+                    const barColor = mean >= 0 ? '#22c55e' : '#ef4444';
+                    const dir      = mean >= 0 ? '↑' : '↓';
+                    const dirColor = mean >= 0 ? '#16a34a' : '#dc2626';
+                    return `<div class="shap-row">
+                        <span class="shap-label">${escapeHtml(prettyLabel(feat))}</span>
+                        <div class="shap-bar-track">
+                            <div class="shap-bar-fill" style="width:${pct}%;background:${barColor};"></div>
+                        </div>
+                        <span class="shap-val" style="color:${dirColor};">${Math.abs(mean).toFixed(3)}</span>
+                        <span class="shap-dir" style="color:${dirColor};">${dir}</span>
+                    </div>`;
+                }).join('');
+
+                const noteColor = prob >= 75 ? 'var(--red)' : 'var(--orange)';
+                const noteText  = prob >= 75
+                    ? 'This employee is at critical risk. The factors listed above are the primary contributors to their attrition likelihood. Immediate intervention is strongly recommended.'
+                    : 'This employee is at elevated risk. The factors above are meaningful contributors. Addressing the highest-impact areas can meaningfully reduce attrition likelihood.';
+
+                featureEl.innerHTML = `
+                    <p class="section-subtitle">
+                        Showing average feature impact values for the <strong>${escapeHtml(jobRole || 'this')}</strong> role group.
+                        These represent patterns across employees with the same role — a positive value means the feature
+                        tends to <em>increase</em> attrition risk; a negative value means it tends to <em>reduce</em> it.
+                    </p>
+                    ${legendHtml}
+                    ${shapHtml}
+                    <p style="font-size:11px;margin-top:12px;padding:9px 13px;background:#fff8e6;border:1px solid #f5d87a;border-radius:8px;color:${noteColor};line-height:1.5;">
+                        ${noteText}
+                    </p>`;
+            }
+
+            // ── Retention Strategies ─────────────────────────────────────────
+            // Section title mentions job role
+            document.getElementById('strategySectionTitle').innerHTML =
+                `Retention Strategies<span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);font-size:9px;"> ${roleLabel}</span>`;
+
+            const stratEl   = document.getElementById('strategiesContent');
+            const stratList = (strategies && strategies.Strategies) ? strategies.Strategies : [];
+            const stratRole = strategies ? (strategies.Role || jobRole || '—') : '—';
+
+            if (!stratList.length) {
+                stratEl.innerHTML = `<p class="no-strategies">No retention strategies are available for this employee.</p>`;
+            } else {
+                const grouped = {};
+                stratList.forEach(s => {
+                    const key = s.Feature || 'General';
+                    if (!grouped[key]) grouped[key] = [];
+                    grouped[key].push(s);
+                });
+
+                let stratHtml = `<p class="section-subtitle">
+                    Role group: <strong>${escapeHtml(stratRole)}</strong> &nbsp;·&nbsp;
+                    ${stratList.length} recommended actions across ${Object.keys(grouped).length} key areas.
+                </p>`;
+
+                Object.entries(grouped).forEach(([feature, items]) => {
+                    const first    = items[0];
+                    const level    = (first.ClusterLevel || 'N/A').toLowerCase();
+                    const levelCls = level === 'n/a' ? 'na' : level;
+                    const val      = first.FeatureValue !== undefined ? String(first.FeatureValue) : '';
+
+                    stratHtml += `<div class="strategy-group">
+                        <div class="strategy-group-title">
+                            ${escapeHtml(prettyLabel(feature))}
+                            ${val ? `<span class="feat-badge">${escapeHtml(val)}</span>` : ''}
+                            <span class="level-pill ${levelCls}">${escapeHtml(first.ClusterLevel || 'N/A')}</span>
+                        </div>`;
+
+                    items.forEach(s => {
+                        stratHtml += `<div class="strategy-item">${escapeHtml(s.RecommendedStrategy)}</div>`;
+                    });
+
+                    stratHtml += `</div>`;
+                });
+
+                stratEl.innerHTML = stratHtml;
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const raw = sessionStorage.getItem('reportData');
+            if (!raw) {
+                document.body.innerHTML = '<div style="padding:60px;text-align:center;font-family:Roboto,sans-serif;color:#6b7280;">No report data found. Please select an employee from the dashboard first.</div>';
+                return;
+            }
+            try { render(JSON.parse(raw)); }
+            catch(e) {
+                document.body.innerHTML = `<div style="padding:60px;font-family:Roboto,sans-serif;color:#9b1c1c;">Error rendering report: ${e.message}</div>`;
+            }
+        });
+    </script>
+</body>
+</html>

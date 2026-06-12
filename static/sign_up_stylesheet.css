@@ -1,0 +1,143 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
+
+:root {
+    --primary-gradient: linear-gradient(180deg, #005160, #007589);
+    --primary-font: 'Roboto', sans-serif;
+    --primary-font-color: #ffffff;
+    --secondary-font-color: #00CFF3;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--primary-font);
+}
+
+.container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    background: var(--primary-gradient);
+}
+
+.left-panel {
+    width: 50vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.branding {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+    padding-left: 20px;
+    margin-left: 200px;
+
+    img {
+        width: 105px;
+    }
+
+    h1 {
+        font-size: 24px;
+        font-weight: normal;
+        color: var(--primary-font-color);
+    }
+}
+
+.right-panel {
+    width: 50vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.backdrop {
+    width: 47.7%;
+    height: 50.36%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: white;
+    padding: 30px;
+    border-radius: 3rem;
+}
+
+.header {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    padding-left: 20px;
+
+    img {
+        width: 36px;
+        cursor: pointer;
+    }
+
+    h1 {
+        font-size: 30px;
+        margin-left: 20px;
+        font-weight: normal;
+    }
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 20px;
+    padding: 20px;
+
+    input {
+        height: 40px;
+        border: none;
+        border-radius: 10px;
+        background-color: #c4c4c4;
+        padding: 10px;
+    }
+
+    label {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+
+        input {
+            width: 20px;
+            height: 20px;
+        }
+
+        span {
+            font-size: 14px;
+            color: var(--secondary-font-color);
+        }
+    }
+
+    button {
+        height: 40px;
+        border: none;
+        border-radius: 10px;
+        background-color: #2270FF;
+        color: var(--primary-font-color);
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        &:hover {
+            background-color: #004ad3;
+        }
+    }
+}

@@ -1,0 +1,275 @@
+
+:root {
+    --primary-gradient: linear-gradient(180deg, #005160, #007589);
+    --primary-font: 'Roboto', sans-serif;
+    --primary-font-color: #ffffff;
+    --secondary-font-color: #00CFF3;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--primary-font);
+    background: var(--primary-gradient); /* Consistent background across pages */
+    min-height: 100vh;
+}
+.navigation-bar {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    padding: 25px 60px;
+}
+
+.product-identity {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.product-identity img {
+    width: 73px;
+    height: 73px;
+}
+
+.product-identity h1 {
+    font-size: 16px;
+    color: var(--primary-font-color);
+    font-weight: normal;
+}
+
+.navigation-panel {
+    display: flex;
+    gap: 35px;
+    justify-content: center;
+    flex: 1;
+}
+
+.navigation-panel p, .navigation-panel a {
+    color: var(--primary-font-color);
+    font-size: 16px;
+    cursor: pointer;
+    font-weight: 350;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+/* Specific styling for the active page link */
+.navigation-panel .active {
+    color: var(--secondary-font-color);
+    font-weight: 500;
+}
+.login {
+    width: 120px;
+    height: 40px;
+    border: none;
+    border-radius: 500px;
+    color: white;
+    background-color: #007589;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-get-started {
+    background: var(--accent-blue);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+}
+
+
+/* Container and Layout */
+.container {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: var(--primary-gradient); /* Consistent teal gradient */
+    overflow-x: hidden;
+}
+
+/* Team Grid Settings */
+.team-grid {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 30px;
+    padding: 60px 20px;
+    width: 100%;
+    flex-wrap: wrap; /* Wraps cards for mobile responsiveness */
+}
+
+/* Individual Card Styling */
+.team-card {
+    background-color: #f0f2f590; /* Darker teal card background */
+    border-radius: 40px;
+    width: 350px;
+    height: 450px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.team-card:hover { transform: translateY(-10px); box-shadow: 0 0 20px 10px #f0f2f590; }
+
+.team-card:hover .member-image-box::before {
+    opacity: 1;
+    animation: spin 3s linear infinite, pulse 2s ease-in-out infinite;
+
+}
+@keyframes spin {
+    to {transform: rotate(360deg);}
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+}
+
+/* Image Placeholder Box */
+.member-image-box {
+    position: relative;
+    width: 280px;
+    height: 280px;
+    background-color: #D9D9D9;
+    border-radius: 35px;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.member-image-box img {
+    position: relative;
+    z-index: 2;
+    width: calc(100% - 4px);
+    height: calc(100% - 4px);
+    margin: 2px;
+    object-fit: cover;
+    border-radius: inherit;
+}
+
+.member-image-box::before {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: inherit;
+    background: conic-gradient(
+        transparent 0deg 140deg,
+        #003a43 140deg 160deg,
+        transparent 160deg 320deg,
+        #003a43 320deg 340deg,
+        transparent 340deg 360deg
+    );
+    opacity: 0;
+}
+
+
+.member-image-box::after {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    border-radius: inherit;
+    background: #D9D9D9;
+    z-index: 1
+}
+
+.member-name {
+    color: var(--primary-font-color);
+    font-size: 24px;
+    font-weight: 500;
+    margin-bottom: 15px;
+}
+
+/* Social Icon Settings */
+.social-icons {
+    display: flex;
+    gap: 15px;
+}
+
+.social-icons img {
+    width: 35px;
+    height: 35px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.social-icons img:hover {
+    opacity: 0.7;
+}
+
+.navigation-bar {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    padding: 25px 60px;
+}
+
+.product-identity {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.product-identity img {
+    width: 73px;
+    height: 73px;
+}
+
+.product-identity h1 {
+    font-size: 16px;
+    color: var(--primary-font-color);
+    font-weight: normal;
+}
+
+.navigation-panel {
+    display: flex;
+    gap: 35px;
+    justify-content: center;
+    flex: 1;
+}
+
+.navigation-panel a {
+    color: var(--primary-font-color);
+    font-size: 16px;
+    cursor: pointer;
+    font-weight: 350;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.navigation-panel .active {
+    color: var(--secondary-font-color);
+    font-weight: 500;
+}
+
+/* Consistent Button Styling */
+.browse-btn {
+    height: 40px;
+    padding: 0 18px;
+    border: none;
+    border-radius: 500px;
+    color: white;
+    background-color: #007589;
+    cursor: pointer;
+    font-weight: 500;
+    font-family: var(--primary-font);
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    transition: background-color 0.2s;
+}
+
+.browse-btn:hover {
+    background-color: #005f70;
+}

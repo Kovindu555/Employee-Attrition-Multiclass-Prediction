@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign-up Page</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='sign_up_stylesheet.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="left-panel">
+            <div class="branding">
+                <a href="/"><img src="{{ url_for('static', filename='assets/logo.png') }}" alt="Logo" class="logo"></a>
+                <h1>Product Name</h1>
+            </div>
+        </div>
+        <div class="right-panel">
+            <div class="backdrop">
+                <div class="header">
+                    <a href="{{ url_for('index') }}">
+                        <img src="{{ url_for('static', filename='assets/back.png') }}" alt="" class="back" style="cursor: pointer;">
+                    </a>
+                    <h1>Sign-up</h1>
+                </div>
+
+                <!-- Flash messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="flash flash-{{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <form action="{{ url_for('auth.signup') }}" method="post" class="login-form">
+                    <input
+                        type="email"
+                        name="email"
+                        placeholder="Enter your email address"
+                        class="input-field"
+                        required
+                        value="{{ request.form.get('email', '') }}"
+                    >
+                    <input
+                        type="password"
+                        name="password"
+                        placeholder="Password"
+                        class="input-field"
+                        id="create"
+                        required
+                    >
+                    <input
+                        type="password"
+                        name="confirm_password"
+                        placeholder="Confirm Password"
+                        class="input-field"
+                        id="confirm"
+                        required
+                    >
+                    <label>
+                        <input type="checkbox" id="remember-me" class="checkbox">
+                        I agree to the terms and conditions
+                    </label>
+                    <button type="submit" class="sign-up">Sign-up</button>
+                </form>
+                <p class="sign-up">Already have an account? <a href="{{ url_for('auth.login') }}">Sign in</a></p>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .flash {
+            padding: 10px 14px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+        }
+        .flash-error   { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+        .flash-success { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+    </style>
+</body>
+</html>
